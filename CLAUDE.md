@@ -2,7 +2,7 @@
 
 Monorepo com `Front/` (React) e `Back/` (Java 21 + Spring Boot 3).
 
-**Fase atual: F0 — Fundação do frontend.** O backend ainda não existe; os dados vêm de mock até a Fase 6.
+**Fase atual: F1 — Catálogo público.** A F0 está concluída (fundação em `Front/`). O backend ainda não existe; os dados vêm de mock até a Fase 6.
 
 ---
 
@@ -43,6 +43,9 @@ Exceções já decididas e registradas:
 | JWT decodificado à mão em `lib/jwt.ts` | 15 linhas. Dispensa `jwt-decode` |
 | CPF e CNPJ validados à mão em `lib/documento.ts` | 40 linhas. Dispensa `cpf-cnpj-validator` |
 | Máscara de documento à mão em `lib/formato.ts` | Dispensa `react-imask` |
+| Tailwind **v3.4**, não v4 | `docs/design.md` seção 4.2 especifica `tailwind.config.ts` com `theme.extend`, que é o formato da v3. A v4 move a configuração para dentro do CSS |
+| `tailwindcss-animate` | Requisito do shadcn/ui para as animações de `dialog`, `sheet` e `accordion`. `devDependency` |
+| `@radix-ui/react-slot`, `@radix-ui/react-separator` | Primitivas que o próprio shadcn/ui instala por baixo. Entram conforme o componente é adicionado |
 
 Qualquer outra dependência precisa de justificativa explícita antes de entrar.
 
@@ -74,6 +77,7 @@ type Papel = 'CLIENTE' | 'ADMIN';
 Plataforma, não domínio:
 - APIs de biblioteca: `useQuery`, `isLoading`, `data`, `onSubmit`, `register`, `props`, `children`
 - Claims registradas do JWT pela RFC 7519: `sub`, `iat`, `exp`. As customizadas vão em português: `papeis`, `nome`, `email`
+- **Prefixo `use` em hooks**: o prefixo é lido pelo `react-hooks/rules-of-hooks` e pelo compilador do React, então é plataforma, não escolha de estilo. O resto do nome continua em português — `useTituloDaPagina`, `useTema`, `useSessao`. Arquivo correspondente: `use-titulo-da-pagina.ts`
 
 ### O backend espelha estes nomes
 
@@ -156,12 +160,17 @@ Front/src/
 
 ## Comandos
 
+Rodar de dentro de `Front/`:
+
 ```
-npm run dev      # servidor de desenvolvimento
-npm run build    # build de producao
-npm run test     # Vitest
-npm run lint     # ESLint
-npm run format   # Prettier
+npm run dev             # servidor de desenvolvimento
+npm run build           # verificacao de tipos + build de producao
+npm run test            # Vitest
+npm run test:coverage   # Vitest com cobertura
+npm run lint            # ESLint
+npm run format          # Prettier
+npm run format:check    # Prettier em modo verificacao
+npm run verificar-tipos # tsc sem emitir
 ```
 
 Variáveis de ambiente:

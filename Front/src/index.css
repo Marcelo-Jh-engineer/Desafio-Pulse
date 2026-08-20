@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens conforme docs/design.md secao 4.1. */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* marca-azul-700 #004E98 — cor oficial do logotipo */
+    --primary: 209 100% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    /* marca-turquesa-300 #73F1DD — cor do corpo do Dentinho */
+    --secondary: 170 82% 70%;
+    --secondary-foreground: 209 100% 17%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 170 82% 95%;
+    --accent-foreground: 209 100% 30%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --sucesso: 142 76% 36%;
+    --sucesso-foreground: 0 0% 100%;
+    --alerta: 32 95% 44%;
+    --alerta-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 209 100% 30%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 229 84% 5%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 96%;
+
+    /* marca-azul-300 #6BB8FF */
+    --primary: 209 100% 71%;
+    --primary-foreground: 209 100% 17%;
+
+    /* marca-turquesa-300 #73F1DD — mesma cor, o mascote nao muda */
+    --secondary: 170 82% 70%;
+    --secondary-foreground: 209 100% 17%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 170 90% 20%;
+    --accent-foreground: 170 82% 80%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --sucesso: 142 69% 45%;
+    --sucesso-foreground: 143 64% 10%;
+    --alerta: 38 92% 50%;
+    --alerta-foreground: 26 83% 12%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 209 100% 71%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  /* RNF-A11Y: o indicador de foco nunca some, so muda de forma. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  /* Preco, total e quantidade: colunas nao dancam ao trocar de digito. */
+  .numeros-tabulares {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* docs/design.md secao 10 — movimento respeita a preferencia do sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
