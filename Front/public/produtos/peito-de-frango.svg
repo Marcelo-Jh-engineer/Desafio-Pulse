@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Peito de Frango">
+  <rect width="400" height="400" fill="#FFE8E8"/>
+  <circle cx="200" cy="178" r="96" fill="none" stroke="#A32A2A" stroke-width="8" opacity="0.35"/>
+  <text x="200" y="178" font-family="Inter, system-ui, sans-serif" font-size="88" font-weight="700"
+        fill="#A32A2A" text-anchor="middle" dominant-baseline="central">PD</text>
+  <text x="200" y="330" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500"
+        fill="#A32A2A" text-anchor="middle" opacity="0.75">Peito de Frango</text>
+</svg>

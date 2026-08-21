@@ -1,9 +1,27 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { servidor } from '@/mocks/servidor';
+
+/**
+ * Os mesmos handlers do navegador atendem os testes, entao a suite exercita o
+ * caminho real de rede: cliente HTTP, interceptadores e normalizacao de erro.
+ * Ver docs/prd.md secao 7.3.
+ *
+ * `error` em requisicao nao tratada e proposital: chamada que escapou do mock
+ * quebra o teste em vez de bater na rede de verdade.
+ */
+beforeAll(() => {
+  servidor.listen({ onUnhandledRequest: 'error' });
+});
 
 afterEach(() => {
+  servidor.resetHandlers();
   cleanup();
+});
+
+afterAll(() => {
+  servidor.close();
 });
 
 // jsdom nao implementa matchMedia, usado pelo provedor de tema.
@@ -34,3 +52,6 @@ Object.defineProperty(window, 'IntersectionObserver', {
     thresholds: readonly number[] = [];
   },
 });
+
+// jsdom nao implementa scrollIntoView, usado ao trocar de pagina no catalogo.
+Element.prototype.scrollIntoView = vi.fn();

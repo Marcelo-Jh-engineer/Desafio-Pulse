@@ -8,4 +8,13 @@ export const ambiente = {
   urlBaseApi: import.meta.env.VITE_API_BASE_URL ?? '/api',
 } as const;
 
-export const usandoMock = ambiente.modoApi === 'mock';
+/**
+ * Comparacao direta contra `import.meta.env`, nao contra `ambiente.modoApi`.
+ *
+ * O Vite substitui `import.meta.env.VITE_API_MODE` por um literal no build,
+ * entao esta linha vira `false` constante quando o modo e `http` — e o Rollup
+ * elimina o import dinamico do MSW junto. Lendo pelo objeto acima a constante
+ * nao se propaga e os 424 kB do MSW acabam no `dist` de producao, violando
+ * docs/prd.md secao 7.3.
+ */
+export const usandoMock = import.meta.env.VITE_API_MODE !== 'http';

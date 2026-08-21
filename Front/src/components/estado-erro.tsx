@@ -3,9 +3,9 @@ import { Dentinho } from '@/components/dentinho';
 import { MENSAGENS_ERRO } from '@/lib/erros';
 
 interface PropriedadesEstadoErro {
-  titulo?: string;
-  mensagem?: string;
-  aoTentarDeNovo?: () => void;
+  titulo?: string | undefined;
+  mensagem?: string | undefined;
+  aoTentarDeNovo?: (() => void) | undefined;
 }
 
 /**

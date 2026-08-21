@@ -22,6 +22,13 @@ export const rotas = createBrowserRouter([
         },
       },
       {
+        path: 'produtos/:slug',
+        lazy: async () => {
+          const { PaginaProduto } = await import('@/features/catalogo/paginas/pagina-produto');
+          return { Component: PaginaProduto };
+        },
+      },
+      {
         path: '403',
         lazy: async () => {
           const { PaginaAcessoNegado } = await import('@/app/paginas/pagina-acesso-negado');

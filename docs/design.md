@@ -66,9 +66,36 @@ O turquesa da marca é **claro** (luminosidade 70%). Isso define o botão de aç
 
 > **Botão de ação = fundo `marca-turquesa-300` com texto `marca-azul-900`.** Dá 10.2:1 e reproduz exatamente a relação visual do mascote. Texto branco sobre turquesa é proibido em qualquer tom claro da escala.
 
-### 2.4 Neutros
+### 2.4 Neutros — escala `neutro`, `hue 200 → 209`
 
-Escala `slate` do Tailwind, sem customização. Texto, bordas, fundos e superfícies.
+**Não é `slate`.** Cinza puro apaga a marca justamente onde ela tem mais área: fundo de página, borda, texto de apoio. A escala neutra carrega uma tinta das duas cores da marca — o matiz desliza de 200 (turquesa-azul) nos tons claros até 209 (o azul do logotipo) nos escuros. O efeito é uma superfície que já parece da marca antes de qualquer componente colorido entrar.
+
+| Token | HEX | HSL | Sobre `neutro-50` | Sobre `neutro-950` |
+|---|---|---|---:|---:|
+| `neutro-50` | `#FBFDFE` | `200 60% 99%` | — | 18.49:1 |
+| `neutro-100` | `#F0F7FA` | `195 50% 96%` | 1.06:1 | 17.42:1 |
+| `neutro-200` | `#DEEDF2` | `196 45% 91%` | 1.18:1 | 15.72:1 |
+| `neutro-300` | `#CBE3EB` | `196 45% 86%` | 1.31:1 | 14.13:1 |
+| `neutro-400` | `#8EB1C2` | `200 30% 66%` | 2.23:1 | 8.28:1 |
+| `neutro-500` | `#668CA3` | `203 25% 52%` | 3.52:1 | 5.25:1 |
+| `neutro-600` | `#4D6A80` | `205 25% 40%` | 5.58:1 | 3.31:1 |
+| `neutro-700` | `#344C60` | `207 30% 29%` | 8.76:1 | 2.11:1 |
+| `neutro-800` | `#1C2F40` | `209 40% 18%` | 13.45:1 | 1.37:1 |
+| `neutro-900` | `#0F1C29` | `209 47% 11%` | 16.89:1 | 1.09:1 |
+| `neutro-950` | `#07121D` | `209 60% 7%` | 18.49:1 | — |
+
+**Papéis fixos**: `neutro-50` é o fundo no tema claro e `neutro-950` no escuro; `neutro-900` e `neutro-100` são o texto principal de cada tema; `neutro-600` e `neutro-400` são o texto de apoio; `neutro-300` é a borda clara.
+
+**Limites**: do 50 ao 400 a escala é fundo, borda e preenchimento — nunca texto sobre claro. `neutro-500` a 3.52:1 serve para ícone e borda, não para texto corrido. Texto sobre claro começa em `neutro-600`.
+
+Duas superfícies fogem da escala de propósito, porque puxam para o turquesa:
+
+| Superfície | HSL | HEX | Uso |
+|---|---|---|---|
+| `--muted` | `190 45% 94%` | `#E9F4F7` | Apoio, rodapé de cartão, linha alternada |
+| `--accent` | `170 75% 88%` | `#C9F7F0` | Hover de item de lista, destaque suave |
+
+E o **cartão continua branco puro** (`#FFFFFF`): sobre o fundo levemente tingido ele levanta sozinho, sem precisar de sombra pesada.
 
 ### 2.5 Semânticos
 
@@ -85,7 +112,8 @@ Verde e âmbar têm **dois** valores: o tom 500 serve para preenchimento, ícone
 
 - **Azul** estrutura: header, links, títulos, contorno, foco.
 - **Turquesa** preenche e converte. Um botão de ação turquesa por vista — se há dois, um está errado.
-- **Neutros** carregam o conteúdo. Cor de marca em texto corrido é ruído.
+- **Neutros** carregam o conteúdo, mas nunca são cinza puro — a escala `neutro` já é tingida, então o fundo, a borda e o texto de apoio ficam do lado da marca sem gritar. Cor de marca **saturada** em texto corrido continua sendo ruído.
+- **Superfície de marca** (seção 4.3) é onde o azul aparece em bloco: cabeçalho e rodapé. Fora dali, azul é contorno e texto, não fundo de área grande.
 - Cor nunca é o **único** portador de informação: estoque baixo é cor **mais** rótulo; erro é cor **mais** ícone **mais** texto.
 
 ---
@@ -96,20 +124,28 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
 
 | Frente | Fundo | Razão | Nível | Uso |
 |---|---|---:|---|---|
-| `slate-900` `#0F172A` | branco | 17.9:1 | AAA | Título e texto principal |
+| `neutro-100` `#F0F7FA` | `neutro-950` `#07121D` | 17.4:1 | AAA | Texto principal, tema escuro |
+| `neutro-900` `#0F1C29` | `neutro-50` `#FBFDFE` | 16.9:1 | AAA | Título e texto principal, tema claro |
+| branco | `marca-azul-900` `#002D57` | 13.9:1 | AAA | **Rodapé** e cabeçalho no tema escuro |
+| `marca-turquesa-300` `#73F1DD` | `neutro-950` `#07121D` | 13.8:1 | AAA | Ação no tema escuro |
+| `marca-turquesa-200` `#A2F6E8` | `marca-azul-900` `#002D57` | 11.2:1 | AAA | Apoio no rodapé |
 | `marca-azul-900` `#002D57` | `marca-turquesa-300` `#73F1DD` | 10.2:1 | AAA | **Botão de ação** |
+| `marca-turquesa-300` `#73F1DD` | `marca-azul-900` `#002D57` | 10.2:1 | AAA | Foco e item ativo no rodapé |
+| `marca-azul-700` `#004E98` | `accent` `#C9F7F0` | 9.8:1 | AAA | Item de lista em hover |
+| `marca-azul-300` `#6BB8FF` | `neutro-950` `#07121D` | 8.9:1 | AAA | Primário no tema escuro |
 | `marca-azul-700` `#004E98` | branco | 8.3:1 | AAA | Link, texto de marca |
-| branco | `marca-azul-700` `#004E98` | 8.3:1 | AAA | **Botão primário** |
+| `neutro-400` `#8EB1C2` | `neutro-950` `#07121D` | 8.3:1 | AAA | Texto de apoio, tema escuro |
+| branco | `marca-azul-700` `#004E98` | 8.3:1 | AAA | **Botão primário** e **cabeçalho**, tema claro |
 | `marca-azul-700` `#004E98` | `marca-turquesa-50` `#E8FDF9` | 7.8:1 | AAA | Destaque suave, aviso informativo |
-| `slate-600` `#475569` | branco | 7.6:1 | AAA | Texto secundário |
 | `marca-azul-600` `#0061BD` | branco | 6.1:1 | AA | Link em hover |
 | `marca-azul-700` `#004E98` | `marca-turquesa-300` `#73F1DD` | 6.0:1 | AA | Botão de ação, variante mais suave |
+| `marca-turquesa-300` `#73F1DD` | `marca-azul-700` `#004E98` | 6.0:1 | AA | Item ativo e **anel de foco** no cabeçalho |
+| `neutro-600` `#4D6A80` | `neutro-50` `#FBFDFE` | 5.6:1 | AA | Texto de apoio, tema claro |
+| `neutro-600` `#4D6A80` | `muted` `#E9F4F7` | 5.1:1 | AA | Texto de apoio sobre superfície de apoio |
 | branco | `marca-turquesa-700` `#077E6A` | 5.0:1 | AA | Ação em superfície escura |
 | `#15803D` | branco | 5.0:1 | AA | Texto de sucesso |
 | `#B45309` | branco | 5.0:1 | AA | Texto de alerta |
 | `#DC2626` | branco | 4.8:1 | AA | Texto de erro |
-| `marca-turquesa-300` `#73F1DD` | `slate-950` `#020617` | 14.8:1 | AAA | Ação no tema escuro |
-| `marca-azul-300` `#6BB8FF` | `slate-950` `#020617` | 9.5:1 | AAA | Primário no tema escuro |
 
 ### Regras que saem daí
 
@@ -117,6 +153,8 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
 2. **Texto branco sobre turquesa claro é proibido.** Do 50 ao 400 a escala turquesa é clara demais; o texto ali é `marca-azul-900`. Branco só a partir de `marca-turquesa-700`.
 3. **`sucesso` e `alerta` no tom 500 não servem para texto** sobre fundo claro. Para texto, os tons 700 da seção 2.5.
 4. O anel de foco usa `marca-azul-700`, que atinge 8.3:1 sobre branco — muito acima dos 3:1 exigidos.
+5. **Sobre a superfície de marca o anel de foco inverte.** Azul sobre azul some, então ali o anel é `marca-turquesa-300`: 6.0:1 sobre `marca-azul-700` e 10.2:1 sobre `marca-azul-900`. A troca é feita uma vez, redefinindo `--ring` na classe `.superficie-marca` — nenhum componente precisa saber disso.
+6. **`neutro-500` para baixo não é cor de texto** sobre fundo claro. Do 50 ao 400 é fundo, borda e preenchimento; texto começa em `neutro-600`.
 
 ---
 
@@ -127,13 +165,17 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
 ```css
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Neutros tingidos de marca (escala `neutro`, docs/design.md 2.4): nenhuma
+       superficie e cinza puro, entao o azul e o turquesa aparecem tambem onde
+       nao existe componente colorido. */
+    --background: 200 60% 99%; /* neutro-50  #FBFDFE */
+    --foreground: 209 47% 11%; /* neutro-900 #0F1C29 */
 
+    /* Cartao em branco puro para levantar do fundo tingido. */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 209 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 209 47% 11%;
 
     /* marca-azul-700 #004E98 — cor oficial do logotipo */
     --primary: 209 100% 30%;
@@ -143,11 +185,13 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
     --secondary: 170 82% 70%;
     --secondary-foreground: 209 100% 17%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Superficie de apoio puxada para o turquesa. neutro-600 sobre ela: 5.08:1 */
+    --muted: 190 45% 94%; /* #E9F4F7 */
+    --muted-foreground: 205 25% 40%; /* neutro-600 #4D6A80 */
 
-    --accent: 170 82% 95%;
-    --accent-foreground: 209 100% 30%;
+    /* Turquesa visivel, nao quase-branco. Par com o azul abaixo: 9.81:1 */
+    --accent: 170 75% 88%; /* #C9F7F0 */
+    --accent-foreground: 209 100% 22%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -157,21 +201,22 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
     --alerta: 32 95% 44%;
     --alerta-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 196 45% 86%; /* neutro-300 #CBE3EB */
+    --input: 196 45% 86%;
     --ring: 209 100% 30%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 229 84% 5%;
-    --foreground: 210 40% 96%;
+    /* Escuro ancorado em azul-marinho, nao em preto neutro. */
+    --background: 209 60% 7%; /* neutro-950 #07121D */
+    --foreground: 195 50% 96%; /* neutro-100 #F0F7FA — 17.4:1 */
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 96%;
+    --card: 209 45% 11%;
+    --card-foreground: 195 50% 96%;
+    --popover: 209 45% 11%;
+    --popover-foreground: 195 50% 96%;
 
     /* marca-azul-300 #6BB8FF */
     --primary: 209 100% 71%;
@@ -181,11 +226,11 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
     --secondary: 170 82% 70%;
     --secondary-foreground: 209 100% 17%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 209 35% 17%;
+    --muted-foreground: 200 30% 66%; /* neutro-400 #8EB1C2 — 8.28:1 */
 
-    --accent: 170 90% 20%;
-    --accent-foreground: 170 82% 80%;
+    --accent: 170 70% 18%;
+    --accent-foreground: 170 82% 78%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -195,8 +240,8 @@ Valores calculados pela fórmula WCAG 2.1 sobre os hex reais. Todo par abaixo é
     --alerta: 38 92% 50%;
     --alerta-foreground: 26 83% 12%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
+    --border: 200 30% 24%;
+    --input: 200 30% 24%;
     --ring: 209 100% 71%;
   }
 }
@@ -241,6 +286,11 @@ theme: {
       border: 'hsl(var(--border))',
       input: 'hsl(var(--input))',
       ring: 'hsl(var(--ring))',
+      neutro: {
+        50: '#FBFDFE', 100: '#F0F7FA', 200: '#DEEDF2', 300: '#CBE3EB',
+        400: '#8EB1C2', 500: '#668CA3', 600: '#4D6A80', 700: '#344C60',
+        800: '#1C2F40', 900: '#0F1C29', 950: '#07121D',
+      },
       marca: {
         azul: {
           50: '#EBF5FF', 100: '#D1E9FF', 200: '#A3D3FF', 300: '#6BB8FF',
@@ -262,6 +312,46 @@ theme: {
   },
 }
 ```
+
+
+### 4.3 Superfície de marca
+
+Os tokens acima tingem as superfícies, mas quem faz a marca aparecer de fato são as duas barras que emolduram toda página: **cabeçalho e rodapé em azul sólido**. É a maior área de cor da interface e a única em que o azul é fundo, não contorno.
+
+| Elemento | Tema claro | Tema escuro |
+|---|---|---|
+| Cabeçalho | `marca-azul-700` `#004E98` | `marca-azul-900` `#002D57` |
+| Rodapé | `marca-azul-900` `#002D57` | `marca-azul-900` `#002D57` |
+| Texto | branco — 8.3:1 e 13.9:1 | idem |
+| Item ativo, foco | `marca-turquesa-300` — 6.0:1 e 10.2:1 | idem |
+| Fio de assinatura | gradiente turquesa 300 → 400 → azul 400, 2 px | idem |
+
+A classe redefine os tokens localmente, então nenhum componente filho precisa saber que está sobre azul:
+
+```css
+@layer components {
+  /**
+   * Superficie de marca — barra azul solida do cabecalho e do rodape.
+   *
+   * Redefine tokens localmente porque sobre azul escuro o anel de foco azul
+   * sumiria. Ali quem marca o foco e o turquesa: 6.04:1 sobre `marca-azul-700`
+   * e 10.15:1 sobre `marca-azul-900`, muito acima dos 3:1 exigidos para
+   * elemento nao textual. Ver docs/design.md secao 3.
+   */
+  .superficie-marca {
+    --ring: 170 82% 70%;
+    --border: 209 100% 22%;
+    @apply bg-marca-azul-700 text-white dark:bg-marca-azul-900;
+  }
+}
+```
+
+**Regras**
+
+- O turquesa **não** vira botão no cabeçalho. Ele fica reservado à ação de conversão (seção 8.4) — se aparecer em "Cadastrar", passa a competir com "Adicionar ao carrinho".
+- Botão sobre a superfície nunca usa `text-primary`: some no fundo. Use branco, ou contorno branco.
+- O `ring-offset` de quem está sobre a barra é a própria cor da barra, não `--background`.
+- O rodapé é um degrau mais escuro que o cabeçalho no tema claro. Isso fecha a página sem repetir exatamente o topo.
 
 ## 5. Tipografia
 
@@ -366,7 +456,7 @@ O Dentinho ocupa os momentos em que a interface seria fria: espera, vazio, erro 
 - Sempre acompanhado de texto que explica o estado. A mascote **ilustra**, nunca **informa** sozinha.
 - `alt` descritivo quando carrega significado; `alt=""` quando é decorativo ao lado de um texto que já diz tudo.
 - Nunca distorcer proporção, girar, recolorir ou aplicar sombra.
-- A arte funciona nos dois temas sem alteração: o turquesa claro tem 14.8:1 sobre `slate-950` e o contorno azul segura a forma sobre branco.
+- A arte funciona nos dois temas sem alteração: o turquesa claro tem 13.8:1 sobre `neutro-950` e o contorno azul segura a forma sobre branco.
 
 ### 7.4 Procedência e pendência
 

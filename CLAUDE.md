@@ -207,4 +207,9 @@ A relação vem do próprio Dentinho — **turquesa preenche, azul contorna**:
 - Botão de ação: fundo `#73F1DD`, texto `#002D57` (10.2:1)
 - **Texto branco sobre turquesa claro é proibido** — o turquesa da marca tem luminosidade 70%
 
-Detalhes e escalas completas em `docs/design.md`.
+A marca não vive só nos botões. Duas decisões espalham ela pela interface inteira:
+
+- **Sem cinza puro.** A escala neutra é a `neutro`, tingida de marca — matiz de 200 nos tons claros a 209 nos escuros. Fundo, borda e texto de apoio já saem do lado do azul. Nada de `slate`.
+- **Cabeçalho e rodapé são superfície de marca**: barra azul sólida, texto branco, turquesa marcando item ativo e foco. É a maior área de cor da tela. A classe `.superficie-marca` redefine `--ring` para turquesa ali, porque azul sobre azul some.
+
+Detalhes, escalas e a tabela de contraste em `docs/design.md`.

@@ -66,6 +66,22 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // Escala neutra tingida de marca: o hue desliza de 200 (turquesa-azul)
+        // ate 209 (azul do logotipo). Substitui o `slate` — cinza puro apaga
+        // a marca nas superficies grandes. Ver docs/design.md secao 2.4.
+        neutro: {
+          50: '#FBFDFE',
+          100: '#F0F7FA',
+          200: '#DEEDF2',
+          300: '#CBE3EB',
+          400: '#8EB1C2',
+          500: '#668CA3',
+          600: '#4D6A80',
+          700: '#344C60',
+          800: '#1C2F40',
+          900: '#0F1C29',
+          950: '#07121D',
+        },
         marca: {
           azul: {
             50: '#EBF5FF',

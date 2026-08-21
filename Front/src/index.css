@@ -5,13 +5,17 @@
 /* Tokens conforme docs/design.md secao 4.1. */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Neutros tingidos de marca (escala `neutro`, docs/design.md 2.4): nenhuma
+       superficie e cinza puro, entao o azul e o turquesa aparecem tambem onde
+       nao existe componente colorido. */
+    --background: 200 60% 99%; /* neutro-50  #FBFDFE */
+    --foreground: 209 47% 11%; /* neutro-900 #0F1C29 */
 
+    /* Cartao em branco puro para levantar do fundo tingido. */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 209 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 209 47% 11%;
 
     /* marca-azul-700 #004E98 — cor oficial do logotipo */
     --primary: 209 100% 30%;
@@ -21,11 +25,13 @@
     --secondary: 170 82% 70%;
     --secondary-foreground: 209 100% 17%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Superficie de apoio puxada para o turquesa. neutro-600 sobre ela: 5.08:1 */
+    --muted: 190 45% 94%; /* #E9F4F7 */
+    --muted-foreground: 205 25% 40%; /* neutro-600 #4D6A80 */
 
-    --accent: 170 82% 95%;
-    --accent-foreground: 209 100% 30%;
+    /* Turquesa visivel, nao quase-branco. Par com o azul abaixo: 9.81:1 */
+    --accent: 170 75% 88%; /* #C9F7F0 */
+    --accent-foreground: 209 100% 22%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -35,21 +41,22 @@
     --alerta: 32 95% 44%;
     --alerta-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 196 45% 86%; /* neutro-300 #CBE3EB */
+    --input: 196 45% 86%;
     --ring: 209 100% 30%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 229 84% 5%;
-    --foreground: 210 40% 96%;
+    /* Escuro ancorado em azul-marinho, nao em preto neutro. */
+    --background: 209 60% 7%; /* neutro-950 #07121D */
+    --foreground: 195 50% 96%; /* neutro-100 #F0F7FA — 17.4:1 */
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 96%;
+    --card: 209 45% 11%;
+    --card-foreground: 195 50% 96%;
+    --popover: 209 45% 11%;
+    --popover-foreground: 195 50% 96%;
 
     /* marca-azul-300 #6BB8FF */
     --primary: 209 100% 71%;
@@ -59,11 +66,11 @@
     --secondary: 170 82% 70%;
     --secondary-foreground: 209 100% 17%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 209 35% 17%;
+    --muted-foreground: 200 30% 66%; /* neutro-400 #8EB1C2 — 8.28:1 */
 
-    --accent: 170 90% 20%;
-    --accent-foreground: 170 82% 80%;
+    --accent: 170 70% 18%;
+    --accent-foreground: 170 82% 78%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -73,8 +80,8 @@
     --alerta: 38 92% 50%;
     --alerta-foreground: 26 83% 12%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
+    --border: 200 30% 24%;
+    --input: 200 30% 24%;
     --ring: 209 100% 71%;
   }
 }
@@ -92,12 +99,39 @@
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
+
+  /* Selecao de texto na cor do mascote. */
+  ::selection {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+}
+
+@layer components {
+  /**
+   * Superficie de marca — barra azul solida do cabecalho e do rodape.
+   *
+   * Redefine tokens localmente porque sobre azul escuro o anel de foco azul
+   * sumiria. Ali quem marca o foco e o turquesa: 6.04:1 sobre `marca-azul-700`
+   * e 10.15:1 sobre `marca-azul-900`, muito acima dos 3:1 exigidos para
+   * elemento nao textual. Ver docs/design.md secao 3.
+   */
+  .superficie-marca {
+    --ring: 170 82% 70%;
+    --border: 209 100% 22%;
+    @apply bg-marca-azul-700 text-white dark:bg-marca-azul-900;
+  }
 }
 
 @layer utilities {
   /* Preco, total e quantidade: colunas nao dancam ao trocar de digito. */
   .numeros-tabulares {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Fio turquesa que assina a borda das superficies de marca. */
+  .fio-marca {
+    @apply bg-gradient-to-r from-marca-turquesa-300 via-marca-turquesa-400 to-marca-azul-400;
   }
 }
 
