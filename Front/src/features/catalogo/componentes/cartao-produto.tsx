@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { BotaoAdicionarAoCarrinho } from '@/components/botao-adicionar-ao-carrinho';
 import { ImagemProduto } from '@/components/imagem-produto';
 import { Preco } from '@/components/preco';
 import { SeloEstoque } from '@/components/selo-estoque';
@@ -47,6 +48,11 @@ export function CartaoProduto({ produto, prioritaria = false }: PropriedadesCart
           </div>
         </CardContent>
       </Link>
+
+      {/* Fora do link de proposito: dentro dele, comprar tambem navegaria. */}
+      <div className="px-4 pb-4">
+        <BotaoAdicionarAoCarrinho produto={produto} className="w-full" />
+      </div>
     </Card>
   );
 }

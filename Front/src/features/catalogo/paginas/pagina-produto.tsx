@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TituloDaPagina } from '@/components/titulo-da-pagina';
 import { EstadoErro } from '@/components/estado-erro';
@@ -5,6 +6,8 @@ import { ImagemProduto } from '@/components/imagem-produto';
 import { Preco } from '@/components/preco';
 import { SeloEstoque } from '@/components/selo-estoque';
 import { Button } from '@/components/ui/button';
+import { BotaoAdicionarAoCarrinho } from '@/components/botao-adicionar-ao-carrinho';
+import { SeletorQuantidade } from '@/components/seletor-quantidade';
 import { Separator } from '@/components/ui/separator';
 import { EsqueletoProduto } from '@/features/catalogo/componentes/esqueleto-produto';
 import { TrilhaNavegacao } from '@/features/catalogo/componentes/trilha-navegacao';
@@ -23,6 +26,7 @@ import { obterDisponibilidade } from '@/types/catalogo';
 export function PaginaProduto() {
   const { slug = '' } = useParams();
   const consulta = useProduto(slug);
+  const [quantidade, definirQuantidade] = useState(1);
 
   if (consulta.isPending) {
     return <EsqueletoProduto />;
@@ -87,20 +91,33 @@ export function PaginaProduto() {
 
           <Separator />
 
-          {/* F3 troca este bloco pelo seletor de quantidade e a acao de compra. */}
+          {indisponivel ? null : (
+            <div className="flex items-center gap-3">
+              <span id="rotulo-quantidade" className="text-sm font-medium">
+                Quantidade
+              </span>
+              <SeletorQuantidade
+                valor={quantidade}
+                estoqueDisponivel={produto.quantidadeEstoque}
+                nomeDoProduto={produto.nome}
+                aoMudar={definirQuantidade}
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button variante="acao" tamanho="grande" disabled aria-disabled="true">
-              Adicionar ao carrinho
-            </Button>
+            <BotaoAdicionarAoCarrinho
+              produto={produto}
+              quantidade={quantidade}
+              tamanho="grande"
+              className="flex-1"
+            />
             <Button variante="secundario" tamanho="grande" asChild>
               <Link to={`/?categoria=${produto.categoria.slug}`}>
                 Ver mais de {produto.categoria.nome}
               </Link>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            A compra entra na próxima fase do projeto.
-          </p>
         </div>
       </div>
 

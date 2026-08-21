@@ -6,40 +6,32 @@ export type TipoDocumento = 'CPF' | 'CNPJ';
 export type TipoIdentificador = 'EMAIL' | 'CPF' | 'CNPJ';
 
 export interface RequisicaoLogin {
-  /** Email, CPF ou CNPJ — ja normalizado. Nenhuma dica de tipo e enviada. */
+  /** O `login` do usuario ou o e-mail dele. Ja normalizado. */
   identificador: string;
   senha: string;
 }
 
+/**
+ * Cadastro — cinco campos, nada alem disso.
+ *
+ * `login` e `email` sao campos separados de proposito: o login pode ser um
+ * documento, e mesmo quando e um e-mail nao precisa ser o mesmo de contato.
+ */
 export interface RequisicaoCadastro {
-  nome: string;
+  /** CPF, CNPJ (so digitos) ou e-mail. */
+  login: string;
   email: string;
-  /** So digitos, 11 ou 14. */
-  documento: string;
-  telefone?: string;
+  nome: string;
   senha: string;
 }
 
 export interface RespostaAutenticacao {
+  /**
+   * Token simulado da fase mockada — ver `lib/token-simulado.ts`. Na F6 vira um
+   * JWT de verdade, emitido e conferido pelo backend.
+   */
   token: string;
-  /** ISO 8601, conveniencia. A verdade e a claim `exp`. */
-  expiraEm: string;
   usuario: Usuario;
-}
-
-/**
- * Claims do JWT — o contrato mais critico do projeto. O mock emite exatamente
- * esta forma, entao a F6 nao altera nada no consumo.
- */
-export interface ClaimsJwt {
-  /** Registradas pela RFC 7519 — permanecem em ingles. */
-  sub: string;
-  iat: number;
-  exp: number;
-  /** Customizadas — em portugues, espelhadas pelo backend. */
-  email: string;
-  nome: string;
-  papeis: Papel[];
 }
 
 /** Estado de cliente. Vive no Zustand e **nao** e persistido. */
@@ -48,6 +40,4 @@ export interface Sessao {
   usuario: Usuario | null;
   papeis: Papel[];
   autenticado: boolean;
-  /** Epoch em segundos, vindo de `exp`. */
-  expiraEm: number | null;
 }

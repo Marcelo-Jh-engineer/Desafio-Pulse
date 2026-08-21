@@ -142,16 +142,21 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
-| RF-AUTH-01 | Cadastro com nome, email, documento (CPF ou CNPJ no mesmo campo) e senha | VISITANTE | P0 | F2 |
-| RF-AUTH-02 | Login por **campo único** que aceita email, CPF ou CNPJ, mais senha | VISITANTE | P0 | F2 |
-| RF-AUTH-03 | Decodificar o JWT e montar a interface conforme `papeis` | Todos | P0 | F2 |
-| RF-AUTH-04 | Validar o documento por dígito verificador antes de enviar; 11 dígitos são CPF, 14 são CNPJ, qualquer outro tamanho é inválido | VISITANTE | P0 | F2 |
-| RF-AUTH-05 | Email e documento únicos; conflito devolve erro por campo | VISITANTE | P0 | F2 |
-| RF-AUTH-06 | Normalizar o identificador antes de enviar: documento sem pontuação, email em minúsculas | VISITANTE | P0 | F2 |
+| RF-AUTH-01 | Cadastro com cinco campos: login, e-mail, nome completo, senha e confirmação de senha | VISITANTE | P0 | F2 |
+| RF-AUTH-02 | Login por **campo único** que aceita CPF, CNPJ ou e-mail, mais senha | VISITANTE | P0 | F2 |
+| RF-AUTH-03 | Ler os papéis do token e montar a interface conforme eles | Todos | P0 | F2 |
+| RF-AUTH-04 | Documento aceito **apenas com números**, sem pontuação, validado por dígito verificador | VISITANTE | P0 | F2 |
+| RF-AUTH-05 | `login` e `email` únicos, sem colidir entre si; conflito devolve erro por campo | VISITANTE | P0 | F2 |
+| RF-AUTH-06 | Normalizar antes de enviar: documento sem pontuação, e-mail em minúsculas | VISITANTE | P0 | F2 |
 | RF-AUTH-07 | Erro de credencial genérico, que não revela se o identificador existe | VISITANTE | P0 | F2 |
-| RF-AUTH-08 | Encerrar sessão limpando todo o estado do cliente | CLIENTE, ADMIN | P0 | F2 |
-| RF-AUTH-09 | Sessão expirada durante ação protegida redireciona preservando o destino | CLIENTE, ADMIN | P0 | F2 |
-| RF-AUTH-10 | Aplicar máscara de CPF ou CNPJ durante a digitação, alternando sozinha pelo comprimento | VISITANTE | P1 | F2 |
+| RF-AUTH-08 | Encerrar sessão limpando todo o estado do cliente, inclusive o carrinho | CLIENTE, ADMIN | P0 | F2 |
+
+**O login é campo próprio, separado do e-mail.** É a credencial de acesso e pode
+ser um documento; mesmo quando é e-mail, não precisa ser o mesmo endereço de
+contato. Quem entra digita um valor só, e o servidor procura nos dois campos.
+
+**Não há máscara de documento em lugar nenhum.** O que a pessoa digita é o que o
+sistema guarda e o que trafega: só dígitos.
 
 ### 4.3 Carrinho
 
@@ -172,14 +177,18 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
 | RF-CHK-01 | Informar endereço de entrega com validação | CLIENTE | P0 | F4 |
-| RF-CHK-02 | Exibir resumo do pedido com itens,  e total | CLIENTE | P0 | F4 |
-| RF-CHK-03 | Coletar dados de pagamento e submeter o valor total | CLIENTE | P0 | F4 |
+| RF-CHK-02 | Exibir resumo do pedido com itens, frete e total | CLIENTE | P0 | F4 |
+| RF-CHK-03 | Coletar dados do cartão, com escolha de parcelamento | CLIENTE | P0 | F4 |
 | RF-CHK-04 | Exibir estado de processamento durante o pagamento | CLIENTE | P0 | F4 |
 | RF-CHK-05 | Exibir confirmação com número do pedido quando aprovado | CLIENTE | P0 | F4 |
 | RF-CHK-06 | Permitir nova tentativa quando recusado, sem perder o carrinho | CLIENTE | P0 | F4 |
 | RF-CHK-07 | Esvaziar o carrinho somente após aprovação | CLIENTE | P0 | F4 |
 | RF-CHK-08 | Revalidar preço e estoque ao entrar no checkout | CLIENTE | P1 | F4 |
 | RF-CHK-09 | Bloquear submissão duplicada do pagamento | CLIENTE | P0 | F4 |
+| RF-CHK-10 | **Escolher entre cartão e Pix** antes de informar qualquer dado | CLIENTE | P0 | F4 |
+| RF-CHK-11 | **Pix com QR code, copia e cola e prazo de 5 minutos**; expirado, gera outro | CLIENTE | P0 | F4 |
+| RF-CHK-12 | Confirmar o Pix e concluir o pedido quando pago dentro do prazo | CLIENTE | P0 | F4 |
+| RF-CHK-13 | **Resumo do pagamento na confirmação e comprovante imprimível** | CLIENTE | P0 | F4 |
 
 ### 4.5 Pedido
 
@@ -194,16 +203,19 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
-| RF-ADM-01 | Listar produtos, ativos e inativos, com estoque | ADMIN | P0 | F5 |
-| RF-ADM-02 | Cadastrar produto com nome, descrição, preço, unidade, imagem, categoria e estoque inicial | ADMIN | P0 | F5 |
-| RF-ADM-03 | Adicionar estoque informando quantidade e motivo | ADMIN | P0 | F5 |
-| RF-ADM-04 | Remover estoque informando quantidade e motivo, sem permitir saldo negativo | ADMIN | P0 | F5 |
+| RF-ADM-01 | Listar produtos, ativos e inativos, com SKU, categoria, unidade, preço e estoque | ADMIN | P0 | F5 |
+| RF-ADM-02 | Cadastrar produto com nome, SKU, descrição, preço, unidade, imagem, categoria e estoque inicial | ADMIN | P0 | F5 |
+| RF-ADM-03 | **Alterar o preço de um produto**, na própria linha da listagem | ADMIN | P0 | F5 |
 | RF-ADM-05 | Gerenciar categorias: listar, criar, renomear, ativar e desativar | ADMIN | P0 | F5 |
-| RF-ADM-06 | Exibir histórico de movimentações do produto | ADMIN | P1 | F5 |
-| RF-ADM-07 | Editar produto existente | ADMIN | P1 | F5 |
-| RF-ADM-08 | Alertar visualmente produtos com estoque baixo | ADMIN | P2 | F5 |
+| RF-ADM-08 | Sinalizar produtos com estoque baixo, com cor **e** rótulo | ADMIN | P2 | F5 |
 
----
+**O administrador não movimenta estoque.** O estoque tem um caminho só: baixa
+quando um pagamento é aprovado. Não há entrada, saída, ajuste manual nem
+histórico de movimentação — o que existe de rastro é o próprio pedido.
+
+**O administrador também não navega a loja.** Ele não compra, e ver o catálogo
+como cliente criaria a dúvida de qual visão está valendo. A listagem
+administrativa já mostra os produtos com os dados que ele precisa operar.
 
 ## 5. Requisitos não funcionais
 
@@ -259,11 +271,18 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 |---|---|
 | RNF-MAN-01 | TypeScript em modo `strict`, sem `any` e sem asserção de tipo para contornar erro |
 | RNF-MAN-02 | ESLint e Prettier bloqueando o build em caso de violação |
-| RNF-MAN-03 | Regras de negócio puras (totais, validação de documento, decodificação de token, guards) com teste unitário |
-| RNF-MAN-04 | Testes de componente por Testing Library, orientados a comportamento, sem detalhe de implementação |
-| RNF-MAN-05 | Nomenclatura de domínio em português conforme `CLAUDE.md`, espelhada pelo backend |
-| RNF-MAN-06 | Feature não importa de outra feature; o compartilhado sobe para `components/`, `lib/` ou `hooks/` |
-| RNF-MAN-07 | Nenhuma biblioteca nova sem justificativa registrada em `CLAUDE.md` |
+| RNF-MAN-03 | Regras de negócio puras isoladas em módulos sem React — totais, validação de documento, leitura de token — para poderem ser verificadas de fora |
+| RNF-MAN-04 | Nomenclatura de domínio em português conforme `CLAUDE.md`, espelhada pelo backend |
+| RNF-MAN-05 | Feature não importa de outra feature; o compartilhado sobe para `components/`, `lib/` ou `hooks/` |
+| RNF-MAN-06 | Nenhuma biblioteca nova sem justificativa registrada em `CLAUDE.md` |
+
+**Não há testes automatizados no frontend — decisão do projeto.** A verificação
+antes de entregar é `verificar-tipos`, `lint`, `format:check` e `build`, mais a
+conferência manual do fluxo na tela.
+
+A consequência a assumir: refatoração fica sem rede. Por isso RNF-MAN-03 ganha
+peso — regra de negócio em módulo puro é a parte que mais se ganharia em testar,
+e mantê-la isolada deixa a porta aberta caso a decisão mude.
 
 ---
 
@@ -272,8 +291,8 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rodam com dados mockados; a 6 troca a fonte.
 
 ### F0 — Fundação
-**Entrega**: Vite, React e TypeScript `strict`; Tailwind com os tokens de `docs/design.md`; shadcn/ui; ESLint e Prettier; Vitest e Testing Library; alias `@/`; estrutura de pastas; cliente HTTP encapsulado; React Router com layout base (header, footer, mascote); páginas 404 e 403.
-**Pronto quando**: `dev`, `build`, `test`, `lint` e `format` passam; a rota `/` renderiza o layout; os tokens de cor respondem ao tema.
+**Entrega**: Vite, React e TypeScript `strict`; Tailwind com os tokens de `docs/design.md`; shadcn/ui; ESLint e Prettier; alias `@/`; estrutura de pastas; cliente HTTP encapsulado; React Router com layout base (header, footer, mascote); páginas 404 e 403.
+**Pronto quando**: `dev`, `build`, `lint`, `format:check` e `verificar-tipos` passam; a rota `/` renderiza o layout; os tokens de cor respondem ao tema.
 
 ### F1 — Catálogo público (mock)
 **Cobre**: RF-CAT-01 a RF-CAT-10.
@@ -281,31 +300,45 @@ Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rod
 **Pronto quando**: filtro, busca e página sobrevivem a recarregar a URL; produto com estoque zero não oferece compra; a lista de categorias não está codificada em nenhum lugar do front.
 
 ### F2 — Autenticação e RBAC (mock)
-**Cobre**: RF-AUTH-01 a RF-AUTH-10.
-**Entrega**: `lib/documento.ts` com validação de CPF e CNPJ; `lib/jwt.ts` com `decodificarToken()`; store de sessão em Zustand; tela de login com identificador polimórfico; tela de cadastro; `RotaProtegida`; `<Permitir>`; header reativo ao papel; interceptador de 401; telas 401 e 403.
-**Pronto quando**: dá para logar com os três usuários de fixture pelas três formas (email, CPF, CNPJ); `CLIENTE` em `/admin/*` cai em `/403` sem perder a sessão; token expirado cai em `/login` preservando o destino; o JWT do mock tem o mesmo formato do real.
+**Cobre**: RF-AUTH-01 a RF-AUTH-08.
+**Entrega**: dois usuários de teste em memória (um `CLIENTE`, um `ADMIN`); `lib/token-simulado.ts`; store de sessão em Zustand; tela de login por e-mail ou CPF; tela de cadastro; `RotaProtegida`; `<Permitir>`; cabeçalho reativo ao papel; página 403.
+**Pronto quando**: dá para entrar com os dois usuários por CPF e por e-mail; `ADMIN` cai em `/admin/produtos` e `CLIENTE` no catálogo; `CLIENTE` em `/admin/*` vai para `/403` **sem perder a sessão**; token quebrado vira sessão anônima sem exceção.
+
+**Escopo deliberadamente reduzido.** A fase mockada não tem servidor, então JWT assinado, expiração, renovação de token e retomada de intenção pós-login não teriam o que exercitar — só machinery sem contraparte. Entram na F6, junto com o backend que os torna reais. O que fica de pé agora é o essencial: credencial confere, token carrega papéis, interface se monta por papel.
 
 ### F3 — Carrinho (mock)
 **Cobre**: RF-CAR-01 a RF-CAR-09.
-**Entrega**: store do carrinho; adicionar, remover e alterar quantidade; teto pelo estoque; contador no header; retomada da intenção do visitante após o login; persistência; desfazer remoção; toasts anunciados por `aria-live`.
-**Pronto quando**: o visitante que clica em comprar volta do login com o item já no carrinho; a quantidade nunca ultrapassa o estoque; os totais batem com a função pura testada.
+**Entrega**: `lib/carrinho-calculo.ts` com as regras de dinheiro em funções puras; store do carrinho em Zustand, persistido; adicionar, remover e alterar quantidade; teto pelo menor valor entre 20 e o estoque; contador no cabeçalho; retomada da intenção do visitante após o login; desfazer remoção por toast.
+**Pronto quando**: o visitante que clica em comprar volta do login com o item já no carrinho; a quantidade nunca ultrapassa o estoque; os totais batem com a função pura testada; `ADMIN` não vê botão de compra nem contador.
+
+**O carrinho é do lado do cliente nesta fase.** Não há endpoint de carrinho no mock: o estado vive no Zustand e é persistido em `localStorage`. Por isso a atualização otimista com reversão descrita em `docs/behavior.md` seção 7 não se aplica ainda — não existe requisição que possa falhar. Ela passa a valer na F6, quando o carrinho passar a ser do servidor.
+
+A revalidação de preço e de estoque contra a API é da F4 (RF-CHK-08), no checkout. O que a F3 garante é o teto no momento de adicionar e um aviso na linha quando o estoque do snapshot já não cobre a quantidade.
 
 ### F4 — Checkout e pagamento simulado (mock)
-**Cobre**: RF-CHK-01 a RF-CHK-09, RF-PED-01 a RF-PED-04.
-**Entrega**: formulário de endereço; resumo do pedido; formulário de pagamento; estado de processamento; confirmação com número do pedido; tela de status do pedido; tratamento de recusa com nova tentativa; bloqueio de submissão duplicada.
-**Pronto quando**: os três desfechos (aprovado, recusado, erro de rede) estão implementados e testados; o carrinho só esvazia após aprovação; nenhum dado de cartão aparece em store, storage ou cache.
+**Cobre**: RF-CHK-01 a RF-CHK-13, RF-PED-01 a RF-PED-04.
+**Entrega**: revalidação de preço e estoque ao entrar; endereço; criação do pedido `PENDENTE`; escolha entre cartão e Pix; cartão com parcelamento; Pix com QR code e prazo de 5 minutos; confirmação com resumo do pagamento e comprovante imprimível; tela de status; recusa com nova tentativa; bloqueio de submissão duplicada.
+**Pronto quando**: os desfechos de cartão (aprovado, recusado, erro de rede) e de Pix (pago no prazo, expirado) estão implementados; o carrinho só esvazia após aprovação; nenhum dado de cartão aparece em store, storage ou cache.
+
+**A ordem das etapas sustenta as garantias.** O pedido é criado ao fim da etapa de endereço, não no pagamento. Isso dá três coisas de graça: o `pedidoId` que a requisição de pagamento exige; a possibilidade de recarregar a tela e consultar o estado em vez de reenviar; e a nova tentativa em pedido `FALHOU` reabrindo o mesmo pedido, sem recriar carrinho.
+
+**A baixa de estoque acontece na transição para `PAGO`** — nunca na montagem do carrinho nem na criação do pedido. Enquanto o pedido está `PENDENTE` o estoque não foi debitado, e é exatamente por isso que o checkout revalida.
 
 ### F5 — Área administrativa (mock)
-**Cobre**: RF-ADM-01 a RF-ADM-08.
-**Entrega**: listagem admin; cadastro de produto; gestão de categorias; entrada e saída de estoque com motivo; histórico de movimentações; alerta de estoque baixo.
-**Pronto quando**: saída maior que o saldo é bloqueada com mensagem clara; toda movimentação registra motivo e responsável; desativar categoria com produtos vinculados avisa antes.
+**Cobre**: RF-ADM-01, RF-ADM-02, RF-ADM-03, RF-ADM-05 e RF-ADM-08.
+**Entrega**: listagem com filtro por categoria e situação, busca por nome ou SKU, ordenada por menor estoque; alteração de preço na própria linha; cadastro de produto; gestão de categorias; alerta de estoque baixo com rótulo, não só cor.
+**Pronto quando**: o preço muda sem sair da listagem e o catálogo público reflete na hora; desativar categoria com produtos vinculados avisa antes; o administrador não consegue abrir o catálogo nem o carrinho.
+
+**O administrador opera um recorte estreito de propósito.** Ele cadastra produto, ajusta preço e organiza categorias. Não movimenta estoque — esse caminho é a venda — e não navega a loja. Duas visões do mesmo catálogo criariam a dúvida de qual está valendo.
+
+O endpoint administrativo de produto busca por **id**, não por slug: a listagem trabalha com a chave estável, que não muda quando o nome do produto é editado. O catálogo público continua indexando por slug, que é o que aparece na URL.
 
 ### F6 — Integração com o backend (dados reais)
 **Entrega**: `VITE_API_MODE=http`; `VITE_API_BASE_URL` apontando para a API Spring; renovação de token; tratamento dos erros reais; ajuste de contrato se algo divergir.
 **Pronto quando**: a aplicação funciona ponta a ponta contra o backend **sem alteração em componente, hook ou chave de query**. Se algum componente precisar mudar, a estratégia de mock falhou e o desvio precisa ser documentado.
 
 ### F7 — Hardening
-**Entrega**: auditoria de acessibilidade com teclado e leitor de tela; testes de ponta a ponta dos fluxos críticos (comprar, logar, repor estoque); orçamento de performance; revisão de todos os estados de erro; revisão de segurança contra a seção 5.4.
+**Entrega**: auditoria de acessibilidade com teclado e leitor de tela; conferência manual dos fluxos críticos (comprar por cartão, comprar por Pix, logar, cadastrar, ajustar preço); orçamento de performance; revisão de todos os estados de erro; revisão de segurança contra a seção 5.4.
 **Pronto quando**: os requisitos não funcionais de acessibilidade, performance e segurança estão verificados, não apenas escritos.
 
 ---
@@ -335,7 +368,6 @@ Adicionar `msw` foge da stack obrigatória, então precisa de razão explícita:
 
 - É `devDependency`: **não entra no bundle de produção**.
 - É a única abordagem que mantém o código de aplicação **idêntico** entre a fase mockada e a integrada. A alternativa (padrão adapter com duas implementações de repositório) obriga a manter dois caminhos de código vivos e deixa o caminho real sem nenhum exercício até a F6 — que é exatamente quando todos os problemas apareceriam de uma vez.
-- Os mesmos handlers servem aos testes, então o teste exercita o caminho real de rede em vez de um dublê inventado.
 
 ### 7.4 Configuração
 
@@ -350,13 +382,17 @@ Três utilitários escritos à mão, curtos e testáveis, em vez de três depend
 
 | Utilitário | Conteúdo | Dispensa |
 |---|---|---|
-| `lib/jwt.ts` | `decodificarToken()`, cerca de 15 linhas | `jwt-decode` |
+| `lib/token-simulado.ts` | `criarToken()` e `lerToken()`, base64 de um objeto simples | `jwt-decode` |
 | `lib/documento.ts` | `validarCpf()`, `validarCnpj()`, `detectarTipoDocumento()`, `detectarTipoIdentificador()`, `normalizarDocumento()`, cerca de 40 linhas | `cpf-cnpj-validator` |
 | `lib/formato.ts` | `formatarDocumento()`, `mascararDocumento()`, `formatarPreco()`, `formatarCep()` | `react-imask` |
 
-### 7.6 O JWT mockado
+### 7.6 O token da fase mockada
 
-O mock emite um token com header e payload em base64 válidos e assinatura falsa. Do ponto de vista do front o formato é idêntico ao real — e isso basta, porque **o front decodifica para montar a interface, nunca para autorizar**. Quem valida assinatura é o backend.
+**Não é um JWT.** É uma única string base64 com o que a interface precisa para se montar: id, nome, e-mail e papéis. Sem header, sem assinatura, sem expiração — nada disso teria sentido sem um servidor do outro lado para emitir e conferir.
+
+Isso é seguro porque **o front usa o token só para montar a interface, nunca para autorizar**. Quando o backend entrar na F6, `lib/token-simulado.ts` é trocado por um decodificador de JWT de verdade; o resto da aplicação não muda, porque só consome `ConteudoDoToken`.
+
+A regra que sobrevive à troca: **os papéis saem do token, nunca do corpo da resposta**. É o token que o backend vai conferir.
 
 ---
 
@@ -385,7 +421,7 @@ Na fase mockada o comportamento é idêntico ao planejado para o real, para que 
 | Abandono por falta de estoque no checkout | abaixo de 2% | Falhas de revalidação em RF-CHK-08 |
 | LCP no catálogo | abaixo de 2,5 s | Web Vitals de campo |
 | Erros de validação de documento no cadastro | abaixo de 10% das tentativas | Taxa de rejeição em RF-AUTH-04 |
-| Movimentações de estoque sem motivo | zero | Campo obrigatório em RF-ADM-03 e RF-ADM-04 |
+| Pedidos concluídos por Pix | acompanhar a divisão com cartão | Campo `pagamento.metodo` do pedido |
 
 ---
 

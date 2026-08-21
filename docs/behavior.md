@@ -21,7 +21,6 @@ Cada tela segue o mesmo esqueleto: **rota · papel · dados · estados · intera
 | `/pedidos/:id` | `CLIENTE` | Status do pedido | F4 |
 | `/admin/produtos` | `ADMIN` | Listagem administrativa | F5 |
 | `/admin/produtos/novo` | `ADMIN` | Cadastro de produto | F5 |
-| `/admin/produtos/:id/estoque` | `ADMIN` | Movimentação de estoque | F5 |
 | `/admin/categorias` | `ADMIN` | Gestão de categorias | F5 |
 | `/403` | Público | Acesso negado | F0 |
 | `*` | Público | 404 | F0 |
@@ -36,8 +35,8 @@ O header é a manifestação mais visível do RBAC e reage a toda mudança de se
 
 | Elemento | VISITANTE | CLIENTE | ADMIN |
 |---|:---:|:---:|:---:|
-| Logo e busca | sim | sim | sim |
-| Link do catálogo | sim | sim | sim |
+| Logo | sim | sim | sim, apontando para a área administrativa |
+| Link do catálogo | sim | sim | **não** |
 | Ícone do carrinho com contador | **não** | sim | **não** |
 | Botões Entrar e Cadastrar | sim | não | não |
 | Menu do usuário com Sair | não | sim | sim |
@@ -45,7 +44,7 @@ O header é a manifestação mais visível do RBAC e reage a toda mudança de se
 
 **Regras**
 - O contador do carrinho só aparece com quantidade maior que zero, e é anunciado por `aria-live="polite"` quando muda.
-- O menu do usuário mostra o nome e o email — **nunca** o documento.
+- O menu do usuário mostra o nome — **nunca** o login, que pode ser documento.
 - Sair limpa sessão e carrinho, invalida o cache de query e leva para `/`.
 - No celular, a navegação vira `sheet`; o carrinho continua visível como ícone fixo.
 
@@ -217,18 +216,35 @@ A validação roda no `blur` e no envio, nunca a cada tecla — não faz sentido
 
 ### Campos
 
+Cinco, nesta ordem. Nada além disso.
+
 | Campo | Regra |
 |---|---|
-| Nome | 3 a 120 caracteres. Rótulo "Nome completo ou razão social" |
+| Login | CPF, CNPJ ou e-mail. Documento **apenas com números** — sem ponto, barra ou hífen. Dígito verificador validado |
 | E-mail | Formato válido, minúsculas, único |
-| CPF ou CNPJ | **Um campo só**, máscara automática, dígito verificador, único |
-| Telefone | Opcional, 10 ou 11 dígitos com DDD |
-| Senha | Mínimo 8 caracteres, com letra e número |
-| Confirmar senha | Igual à senha — **só no front**, nunca enviada |
+| Nome completo | 3 a 120 caracteres |
+| Senha | Mínimo de 6 caracteres |
+| Confirmação de senha | Igual à senha — **só no front**, nunca enviada |
 
-### O campo de documento
+### O campo de login
 
-Mesma mecânica do login, sem a variante de email: máscara de CPF até o 11º dígito, troca sozinha para CNPJ ao chegar em 14. **Não há seletor de pessoa física ou jurídica** — o tipo é inferido pelo comprimento e nunca é persistido.
+Um input só, com a dica visível antes de digitar: *"CPF, CNPJ ou e-mail.
+Documento apenas com números, sem pontos ou traços."*
+
+**Não há máscara.** O documento é digitado, guardado e trafegado sempre com os
+mesmos dígitos — o que a pessoa vê é o que o sistema tem. Também não há seletor
+de pessoa física ou jurídica: o formato é inferido pelo comprimento e nunca é
+persistido.
+
+`login` e `email` são campos separados de propósito. O login é a credencial e
+pode ser um documento; mesmo quando é e-mail, não precisa ser o mesmo endereço
+de contato.
+
+### Validação
+
+A mesma regra do login (seção 5): detecta o tipo, valida o formato daquele tipo,
+e cai numa mensagem única quando o tipo nem dá para determinar. Roda no `blur` e
+no envio, nunca a cada tecla.
 
 ### Estados
 
@@ -238,28 +254,24 @@ Mesma mecânica do login, sem a variante de email: máscara de CPF até o 11º d
 | Enviando | Botão desabilitado com `aria-busy`; campos travados |
 | Erro por campo | `errosPorCampo` do `ErroApi` mapeado direto em `setError` |
 | Erro geral | Alerta acima do formulário |
-| Sucesso | Autentica direto, mostra mascote feliz e leva ao destino guardado ou a `/` |
+| Sucesso | Autentica direto e leva ao destino guardado ou a `/` |
 
 ### Erros por campo vindos do backend
 
 ```json
-{ "email": "Este e-mail já está cadastrado.", "documento": "Este documento já está cadastrado." }
+{ "login": "Este login já está em uso.", "email": "Este e-mail já está cadastrado." }
 ```
 
-Cada chave corresponde ao nome exato do campo no formulário, então o mapeamento é direto. O foco vai para o primeiro campo com erro.
-
-### Acessibilidade
-
-- `autoComplete` correto em cada campo: `name`, `email`, `tel`, `new-password`.
-- Requisitos de senha visíveis **antes** de digitar, não só como erro depois.
-- Resumo de erros em `aria-live="assertive"` no envio.
+Cada chave corresponde ao nome exato do campo, então o mapeamento é direto.
+`login` e `email` são únicos **e não podem colidir entre si**: quem entra digita
+um valor só, e o servidor procura nos dois campos.
 
 ### Casos de borda
 
-- Documento com 12 ou 13 dígitos → "Informe um CPF ou CNPJ válido".
-- Email e documento já cadastrados ao mesmo tempo → os dois erros aparecem juntos.
-- Enviar duas vezes rápido → segunda submissão bloqueada.
+- Documento com 12 ou 13 dígitos → "Informe um CPF, CNPJ ou e-mail válido".
+- Login igual ao e-mail de outra conta → conflito no campo de login.
 - Senha e confirmação diferentes → erro no campo de confirmação, não no de senha.
+- Enviar duas vezes rápido → segunda submissão bloqueada.
 
 ---
 
@@ -335,37 +347,75 @@ Primeira etapa: endereço e conferência.
 
 **Papel**: `CLIENTE` · **Dados**: `RequisicaoPagamento`, `ResultadoPagamento`
 
+A tela começa com a escolha da forma de pagamento. O que vem depois muda; o
+contrato, não — as duas terminam num `ResultadoPagamento`.
+
+| Forma | Como resolve |
+|---|---|
+| Cartão de crédito | Na mesma requisição: aprova ou recusa |
+| Pix | Abre uma cobrança com prazo; o desfecho chega depois |
+
+### Cartão
+
+Número, nome do titular, validade, código de segurança e **parcelamento**. O
+select mostra o valor de cada parcela já calculado — 1, 2, 3, 6 ou 12 vezes, sem
+juros. À vista aparece como "À vista", não como "1×".
+
+Estado dedicado de processamento, sem opção de voltar, enquanto a requisição
+corre.
+
+### Pix
+
+QR code, código copia e cola, valor e um contador de **5 minutos**.
+
+- O contador sai do `expiraEm` que o servidor devolveu, não de uma duração
+  iniciada na tela: recarregar a página não ganha tempo extra.
+- O botão "Copiar" leva o código para a área de transferência; se o navegador
+  negar a permissão, o campo continua selecionável.
+- Passados os 5 minutos, o QR sai da tela e entra o aviso de expiração com a
+  ação de gerar outro código. Os itens continuam no carrinho.
+- **A chave é fictícia.** O QR é um QR de verdade, mas não existe recebedor.
+
+No mundo real quem avisa que o Pix caiu é o banco, por webhook, e a tela apenas
+consulta o pedido. Na fase mockada o gatilho é o botão "Já fiz o pagamento" —
+sem ele, o fluxo dependeria de um serviço externo que não existe aqui.
+
 ### Estados
 
 | Estado | Tela |
 |---|---|
-| Formulário | Campos do cartão e total em destaque |
-| Processando | Tela dedicada, formulário travado, sem opção de voltar |
+| Escolha | Dois cartões de opção, com o que cada forma implica |
+| Formulário do cartão | Campos e total em destaque |
+| Processando cartão | Tela dedicada, sem opção de voltar |
+| Aguardando Pix | QR, copia e cola, contador |
+| Pix expirado | Aviso e ação de gerar novo código |
 | Aprovado | Redireciona para `/pedidos/:id/confirmacao` |
-| Recusado | Motivo da recusa e botão para tentar de novo, com o carrinho intacto |
-| Erro de rede | "Não foi possível confirmar o pagamento", com orientação para não tentar de novo antes de verificar |
+| Recusado | Motivo e nova tentativa, com o carrinho intacto |
+| Erro de rede | "Não foi possível confirmar o pagamento", com orientação para verificar antes de repetir |
 
 ### Regras obrigatórias de segurança
 
 - **Nenhum dado de cartão sai do estado do formulário.** Nunca em store, `localStorage`, `sessionStorage`, cache de query ou log.
-- Os campos de cartão não entram em nenhuma chave de cache do TanStack Query.
+- O pagamento é **mutation**, jamais query: query indexa o cache pelos argumentos.
 - Ao desmontar a tela, o estado do formulário é descartado.
 - Submissão duplicada bloqueada por travamento do botão mais verificação de requisição em andamento (RF-CHK-09).
 
 ### Regra do mock
 
-| Final do número do cartão | Resultado |
+| Situação | Resultado |
 |---|---|
-| `0000` | `RECUSADO` — "Saldo insuficiente" |
-| `1111` | `RECUSADO` — "Cartão expirado" |
-| Qualquer outro | `APROVADO` |
+| Cartão terminado em `0000` | `RECUSADO` — "Saldo insuficiente" |
+| Cartão terminado em `1111` | `RECUSADO` — "Cartão expirado" |
+| Qualquer outro cartão | `APROVADO` |
+| Pix confirmado dentro do prazo | `APROVADO` |
+| Pix confirmado depois do prazo | `RECUSADO` — "O prazo do Pix expirou" |
 
 ### Casos de borda
 
 - Recusa: o pedido fica `FALHOU` e é recuperável; o carrinho **não** é esvaziado.
 - Erro de rede depois do envio: o desfecho é desconhecido. A tela orienta a verificar antes de tentar de novo, em vez de sugerir uma nova submissão que poderia duplicar a cobrança.
 - Recarregar durante o processamento: ao voltar, consulta o estado do pedido em vez de reenviar.
-- Sessão expira durante o pagamento: 401 leva ao login preservando o destino; o pedido permanece `PENDENTE`.
+- Pedido já pago ao abrir a tela: vai direto para a confirmação.
 
 ---
 
@@ -373,15 +423,34 @@ Primeira etapa: endereço e conferência.
 
 **Papel**: `CLIENTE` · **Dados**: `Pedido`
 
-- Mascote feliz, número do pedido em destaque, resumo dos itens, total, endereço de entrega.
+Mascote feliz, número do pedido em destaque, **resumo do pagamento**, itens,
+totais, endereço de entrega e comprador.
+
+O resumo do pagamento fica separado dos itens porque responde outra pergunta: os
+itens dizem **o que** foi comprado, o resumo diz **como** foi pago.
+
+| Forma | O que aparece |
+|---|---|
+| Cartão | Bandeira, quatro últimos dígitos, parcelamento e valor da parcela |
+| Pix | Apenas a forma e a data — não há dado de instrumento a mostrar |
+
 - **O carrinho é esvaziado somente aqui**, depois da aprovação confirmada (RF-CHK-07).
-- Ação para voltar ao catálogo.
-- O documento do comprador aparece **mascarado**, no formato `***.456.789-**`.
+- O login do comprador aparece **mascarado quando é documento**: `***.444.777-**`. Login que é e-mail aparece inteiro, já que está logo acima no campo de contato.
+
+### Imprimir comprovante
+
+O botão "Imprimir comprovante" chama a impressão do navegador. O CSS de
+impressão esconde cabeçalho, rodapé, botões e o indicador de etapas; sai só o
+comprovante, com o nome da loja no topo e a nota de que o documento não tem
+valor fiscal.
+
+Fundos vão para branco na impressão — impressora não imprime cor de fundo de
+graça, e o resultado em preto e branco seria ilegível.
 
 ### Casos de borda
 
 - Acessar a confirmação de um pedido de outro usuário → `/403`.
-- Pedido em estado `PENDENTE` ou `FALHOU` → mostra o estado real, não a confirmação de sucesso.
+- Pedido em estado `PENDENTE` ou `FALHOU` → redireciona para a tela de status, que mostra o estado real.
 - Recarregar a página → funciona; a tela lê o pedido pelo id, não depende de estado em memória.
 
 ---
@@ -409,11 +478,37 @@ Tela de consulta, separada da confirmação. A confirmação é o desfecho imedi
 
 ## 11. Área administrativa
 
+**O administrador não navega a loja.** Ele não compra, e ver o catálogo como
+cliente só criaria a dúvida de qual visão está valendo. Quem tem o papel `ADMIN`
+e abre `/` ou `/produtos/:slug` é levado para `/admin/produtos`; o cabeçalho não
+mostra o link do catálogo nem o contador do carrinho, e o logo aponta para a
+área administrativa.
+
 ### 11.1 Listagem — `/admin/produtos`
 
-Tabela com imagem, nome, categoria, preço, estoque, situação e ações. Filtro por categoria e por situação, busca por nome ou SKU, ordenação por estoque. Produtos inativos aparecem, sinalizados. Estoque baixo (10 ou menos) recebe destaque de `alerta` **com rótulo**, não só cor. No celular a tabela vira lista de cartões.
+É a **única** visão de produtos que o administrador tem, então a linha mostra
+tudo que ele precisa para operar: imagem, nome, SKU, categoria, unidade, preço,
+estoque e situação.
 
-### 11.2 Cadastro de produto — `/admin/produtos/novo`
+Filtro por categoria e por situação, busca por nome ou SKU, ordenação por menor
+estoque — o que está acabando aparece primeiro. Produtos inativos aparecem,
+sinalizados. Estoque de 10 ou menos recebe destaque de `alerta` **com rótulo**
+("8 em estoque · acabando"), nunca só cor. No celular a tabela vira lista de
+cartões.
+
+### 11.2 Alteração de preço — na própria linha
+
+O preço se edita **sem sair da lista**: o botão "Alterar preço" troca o valor por
+um campo, com salvar e cancelar ao lado. Isso é deliberado — o administrador
+compara preços entre produtos vizinhos, e abrir uma tela por ajuste perderia esse
+contexto.
+
+- O campo aceita "19,90" e converte para `1990` antes de enviar.
+- Preço zero ou inválido trava o botão de salvar.
+- Erro do servidor aparece na própria linha.
+- Alterar o preço **não** altera pedidos já feitos: o pedido congela nome e preço no momento da compra. O checkout avisa quem tiver o preço antigo no carrinho.
+
+### 11.3 Cadastro de produto — `/admin/produtos/novo`
 
 | Campo | Validação |
 |---|---|
@@ -423,27 +518,23 @@ Tabela com imagem, nome, categoria, preço, estoque, situação e ações. Filtr
 | Preço | Aceita "19,90" e converte para `1990` antes de enviar |
 | Unidade | Select com os valores de `Unidade` |
 | Categoria | Select alimentado pela API, mostrando apenas categorias ativas |
-| Imagem | URL válida, com pré-visualização |
+| Imagem | Caminho da imagem |
 | Estoque inicial | Inteiro maior ou igual a zero |
-| Ativo | Switch, padrão ligado |
+| Ativo | Padrão ligado |
 
-Sair com alterações não salvas pede confirmação. Após salvar, volta para a listagem com toast e o produto novo em destaque.
-
-### 11.3 Movimentação de estoque — `/admin/produtos/:id/estoque`
-
-- Saldo atual em destaque.
-- Escolha entre **Entrada** e **Saída**, quantidade e motivo obrigatório (3 a 200 caracteres).
-- Pré-visualização do saldo resultante **antes** de confirmar.
-- **Saída maior que o saldo é bloqueada** antes do envio, com mensagem clara. O backend valida de novo — o front apenas antecipa.
-- Histórico abaixo, com tipo, quantidade, motivo, saldo anterior, saldo posterior, responsável e data.
-- O histórico é imutável: para corrigir, registra-se uma movimentação contrária.
+Após salvar, volta para a listagem com toast.
 
 ### 11.4 Categorias — `/admin/categorias`
 
-- Lista ordenada por `ordem`, com nome, slug, quantidade de produtos e situação.
-- Criar e renomear; o slug é gerado pelo backend e exibido como somente leitura.
+- Lista ordenada por `ordem`, com nome, identificador da URL, quantidade de produtos e situação.
+- Criar e renomear; o identificador é gerado pelo backend e exibido como somente leitura.
 - Ativar e desativar. Desativar categoria com produtos vinculados abre confirmação explicando que os produtos continuam vinculados, mas a categoria some do filtro público.
 - Não há exclusão — apenas desativação, para preservar o vínculo histórico.
+
+### O que o administrador **não** faz
+
+- **Não movimenta estoque.** O estoque tem um caminho só: baixa quando um pagamento é aprovado. Não há entrada, saída, ajuste manual nem histórico de movimentação.
+- **Não compra.** Sem carrinho, sem checkout, sem catálogo.
 
 ---
 
@@ -523,18 +614,19 @@ CLIENTE navega para /admin/produtos
 
 **Nunca** tratar como 401. Derrubar a sessão de um usuário legitimamente logado por falta de permissão em uma rota é um bug de comportamento.
 
-### 12.6 Admin repõe estoque
+### 12.6 Admin ajusta preço
 
 ```
-/admin/produtos -> produto com estoque baixo -> /admin/produtos/:id/estoque
-  -> tipo ENTRADA, quantidade 50, motivo "Reposicao semanal"
-  -> pre-visualiza: 70 -> 120
-  -> confirma
-  -> movimentacao registrada, saldo atualizado, historico atualizado
-  -> toast de confirmacao
+/admin/produtos -> localiza o produto pela busca
+  -> "Alterar preco" na propria linha -> campo aparece no lugar do valor
+  -> digita 24,90 -> Salvar
+  -> preco atualizado, toast de confirmacao
+  -> catalogo publico e listagem administrativa invalidados juntos
 ```
 
-Para saída, a mesma sequência, com bloqueio antes do envio quando a quantidade excede o saldo.
+Pedidos já feitos não mudam: eles congelaram o preço no momento da compra. Quem
+tiver o item no carrinho pelo preço antigo é avisado ao entrar no checkout, e
+decide antes de pagar.
 
 ---
 
@@ -572,14 +664,14 @@ Nenhuma mensagem expõe detalhe interno, stack trace ou existência de conta.
 | Quantidade de resultados após filtrar | `polite` |
 | Erro de envio de formulário | `assertive` |
 | Pagamento aprovado ou recusado | `assertive` |
-| Movimentação de estoque registrada | `polite` |
+| Preço de produto alterado | `polite` |
 
 ### 13.4 Dado sensível na interface
 
-- O documento aparece **mascarado** em toda tela que não seja o perfil: `***.456.789-**`.
-- O documento **nunca** entra em query string, log, chave de cache ou título de página.
-- O menu do usuário mostra nome e email, nunca o documento.
-- Dados de cartão nunca saem do estado do formulário.
+- O login aparece **mascarado quando é documento** em toda tela que não seja o perfil: `***.456.789-**`.
+- O documento **nunca** entra em query string, log, chave de cache ou título de página. E nunca ganha máscara: é digitado e guardado só com dígitos.
+- O menu do usuário mostra o nome, nunca o login.
+- Dados de cartão nunca saem do estado do formulário. No comprovante, só os quatro últimos dígitos.
 
 ### 13.5 Carregamento
 

@@ -99,9 +99,9 @@ export default tseslint.config(
     files: ['src/lib/http.ts', 'src/lib/erros.ts'],
     rules: { 'no-restricted-imports': 'off' },
   },
-  // Handlers de mock e testes usam APIs de rede diretamente por natureza.
+  // Handlers de mock usam APIs de rede diretamente por natureza.
   {
-    files: ['src/mocks/**/*.ts', 'src/test/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    files: ['src/mocks/**/*.ts'],
     rules: {
       'no-restricted-globals': 'off',
       'no-restricted-imports': 'off',

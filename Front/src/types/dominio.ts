@@ -12,11 +12,22 @@ export type Unidade = 'UN' | 'KG' | 'G' | 'L' | 'ML' | 'PCT';
 /** Status do pedido. */
 export type StatusPedido = 'PENDENTE' | 'PAGO' | 'FALHOU' | 'CANCELADO';
 
-/** Direcao da movimentacao de estoque. */
-export type TipoMovimentacao = 'ENTRADA' | 'SAIDA';
+/**
+ * Desfecho do pagamento simulado.
+ *
+ * `AGUARDANDO` existe por causa do Pix: a cobranca e gerada na hora, mas o
+ * pagamento so acontece depois, no aplicativo do banco. Cartao nunca passa por
+ * este estado — resolve na mesma requisicao.
+ */
+export type StatusPagamento = 'APROVADO' | 'RECUSADO' | 'AGUARDANDO';
 
-/** Desfecho do pagamento simulado. */
-export type StatusPagamento = 'APROVADO' | 'RECUSADO';
+/** Forma de pagamento escolhida no checkout — RF-CHK-10. */
+export type MetodoPagamento = 'CARTAO' | 'PIX';
+
+export const ROTULO_METODO_PAGAMENTO: Record<MetodoPagamento, string> = {
+  CARTAO: 'Cartão de crédito',
+  PIX: 'Pix',
+};
 
 /** Rotulos ficam na apresentacao, nunca no modelo. */
 export const ROTULO_UNIDADE: Record<Unidade, string> = {

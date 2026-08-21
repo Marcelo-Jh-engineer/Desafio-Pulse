@@ -31,7 +31,6 @@ Ao implementar uma feature, cite o requisito que ela cobre (`RF-CAT-03`, por exe
 - React Hook Form · Zod
 - Axios ou fetch encapsulado
 - ESLint · Prettier
-- Vitest · Testing Library
 
 ### Nenhuma biblioteca nova sem justificativa
 
@@ -40,9 +39,10 @@ Exceções já decididas e registradas:
 | Decisão | Motivo |
 |---|---|
 | `msw` como `devDependency` | Único jeito de manter o código de aplicação idêntico entre mock e API real. Não entra no bundle de produção. Detalhes em `docs/prd.md`, seção 7 |
-| JWT decodificado à mão em `lib/jwt.ts` | 15 linhas. Dispensa `jwt-decode` |
+| Token da fase mockada em `lib/token-simulado.ts` | Não é JWT: uma string base64 com id, nome, email e papéis. Sem assinatura e sem expiração — nada disso faz sentido sem servidor. Vira decodificação de JWT de verdade na F6 |
 | CPF e CNPJ validados à mão em `lib/documento.ts` | 40 linhas. Dispensa `cpf-cnpj-validator` |
-| Máscara de documento à mão em `lib/formato.ts` | Dispensa `react-imask` |
+| `qrcode` para o Pix | Codificação de QR é Reed-Solomon e máscara de matriz: escrever à mão seria centenas de linhas propensas a erro, para um resultado que ou funciona ou não. Entra só no pedaço da rota de pagamento |
+| Sem máscara de documento | CPF e CNPJ são digitados **só com números**. O que a pessoa vê é o que o sistema guarda. Dispensa `react-imask` |
 | Tailwind **v3.4**, não v4 | `docs/design.md` seção 4.2 especifica `tailwind.config.ts` com `theme.extend`, que é o formato da v3. A v4 move a configuração para dentro do CSS |
 | `tailwindcss-animate` | Requisito do shadcn/ui para as animações de `dialog`, `sheet` e `accordion`. `devDependency` |
 | `@radix-ui/react-slot`, `@radix-ui/react-separator` | Primitivas que o próprio shadcn/ui instala por baixo. Entram conforme o componente é adicionado |
@@ -133,14 +133,21 @@ Front/src/
 
 | Capacidade | VISITANTE | CLIENTE | ADMIN |
 |---|:---:|:---:|:---:|
-| Ver catálogo e produto | sim | sim | sim |
+| Ver catálogo e produto | sim | sim | **não** |
 | Carrinho e checkout | não | sim | não |
-| Cadastrar produto, mexer em estoque e categorias | não | não | sim |
+| Cadastrar produto, alterar preço, gerenciar categorias | não | não | sim |
+
+**O ADMIN não navega a loja.** Ele não compra, e ver o catálogo como cliente
+criaria a dúvida de qual visão está valendo. `RotaDeLoja` redireciona quem tem o
+papel para `/admin/produtos`.
+
+**Estoque não se edita à mão.** Ele baixa quando um pagamento é aprovado — esse
+é o único caminho.
 
 - `RotaProtegida` guarda rotas por papel.
 - `<Permitir>` esconde ações dentro de uma tela já acessível.
-- Papéis vêm da claim `papeis` do JWT, decodificada em `lib/jwt.ts`.
-- **401 e 403 são coisas diferentes**: 401 limpa a sessão e leva ao login; 403 **preserva** a sessão e leva a `/403`.
+- Papéis vêm do token simulado, lido em `lib/token-simulado.ts`. Sempre do **token**, nunca do corpo da resposta.
+- **401 e 403 são coisas diferentes**: sem sessão leva ao login; com sessão e sem o papel vai para `/403` **preservando** a sessão.
 
 > **A checagem no front é UX, não segurança. A autorização real é sempre do backend.**
 
@@ -148,11 +155,12 @@ Front/src/
 
 ## Dado sensível
 
-- Documento (CPF ou CNPJ) armazenado e trafegado **só com dígitos**. Máscara apenas na view.
-- **Não existe campo de tipo de pessoa.** O tipo é inferido pelo comprimento: 11 dígitos = CPF, 14 = CNPJ.
+- Documento (CPF ou CNPJ) digitado, armazenado e trafegado **só com dígitos**. Não há máscara em lugar nenhum.
+- `login` e `email` são campos separados. O login é a credencial e pode ser CPF, CNPJ ou e-mail.
+- **Não existe campo de tipo de pessoa.** O formato é inferido: contém `@` é e-mail, 11 dígitos é CPF, 14 é CNPJ.
 - Documento **nunca** em URL, query string, log ou chave de cache (LGPD).
-- Documento exibido mascarado fora do perfil.
-- Nenhum dado de cartão persistido em store, storage, cache ou log.
+- Login exibido mascarado fora do perfil quando é documento.
+- Nenhum dado de cartão persistido em store, storage, cache ou log. No comprovante, só os quatro últimos dígitos.
 - Token em memória, não persistido.
 - Redirecionamento pós-login aceita **apenas** caminho interno.
 
@@ -165,13 +173,15 @@ Rodar de dentro de `Front/`:
 ```
 npm run dev             # servidor de desenvolvimento
 npm run build           # verificacao de tipos + build de producao
-npm run test            # Vitest
-npm run test:coverage   # Vitest com cobertura
 npm run lint            # ESLint
 npm run format          # Prettier
 npm run format:check    # Prettier em modo verificacao
 npm run verificar-tipos # tsc sem emitir
 ```
+
+**Não há testes automatizados neste projeto — decisão registrada.** Antes de
+entregar: `verificar-tipos`, `lint`, `format:check`, `build` e conferência
+manual na tela.
 
 Variáveis de ambiente:
 
@@ -192,8 +202,11 @@ Variáveis de ambiente:
 - Não copiar dado de servidor para o Zustand.
 - Não persistir token, documento formatado ou dado de cartão.
 - Não tratar 403 como 401.
+- Não deixar o ADMIN entrar na loja.
+- Não criar tela de movimentação de estoque.
+- Não persistir a sessão: ela vive em memória e recarregar a página desloga.
 - Não remover indicador de foco.
-- Não usar `dangerouslySetInnerHTML` com conteúdo da API.
+- Não usar `dangerouslySetInnerHTML` com conteúdo da API. A única exceção é o SVG do QR code, gerado localmente a partir de uma string que o próprio front montou.
 
 ---
 

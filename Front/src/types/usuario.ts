@@ -7,19 +7,17 @@ import type { Papel } from '@/types/dominio';
  */
 export interface Usuario {
   id: string;
-  /** Nome completo ou razao social. */
+  /** Nome completo. */
   nome: string;
   email: string;
   /**
-   * So digitos: 11 = CPF, 14 = CNPJ.
+   * Credencial de acesso escolhida no cadastro: **CPF, CNPJ ou e-mail**.
    *
-   * **Nao existe campo de tipo de pessoa** — o tipo e inferido pelo
-   * comprimento com `detectarTipoDocumento()` e nunca persistido.
-   * Formatar e papel exclusivo da view (LGPD, RNF-SEC-03 e RNF-SEC-04).
+   * Quando e documento, guarda **so digitos** — a pontuacao nunca entra no
+   * modelo nem na rede (LGPD, RNF-SEC-03). O tipo e inferido pelo formato com
+   * `detectarTipoIdentificador()` e nunca persistido.
    */
-  documento: string;
-  /** So digitos, com DDD. */
-  telefone?: string;
+  login: string;
   /**
    * Array porque o backend pode conceder mais de um papel. O front sempre
    * trata como conjunto — nunca assume `papeis[0]`.

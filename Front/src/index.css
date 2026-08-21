@@ -135,6 +135,38 @@
   }
 }
 
+/**
+ * Impressao do comprovante — RF-CHK-13.
+ *
+ * O papel nao tem cabecalho, rodape nem botao: sai so o conteudo. Fundos vao
+ * para branco porque impressora nao imprime `bg-card` de graca — e tinta gasta
+ * e ilegivel em preto e branco.
+ */
+@media print {
+  .nao-imprimir,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  [data-comprovante],
+  [data-comprovante] * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}
+
 /* docs/design.md secao 10 — movimento respeita a preferencia do sistema. */
 @media (prefers-reduced-motion: reduce) {
   *,

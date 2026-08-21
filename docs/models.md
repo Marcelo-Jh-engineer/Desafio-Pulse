@@ -35,11 +35,11 @@ export type Unidade = 'UN' | 'KG' | 'G' | 'L' | 'ML' | 'PCT';
 /** Status do pedido. */
 export type StatusPedido = 'PENDENTE' | 'PAGO' | 'FALHOU' | 'CANCELADO';
 
-/** Direção da movimentação de estoque. */
-export type TipoMovimentacao = 'ENTRADA' | 'SAIDA';
-
 /** Desfecho do pagamento simulado. */
-export type StatusPagamento = 'APROVADO' | 'RECUSADO';
+export type StatusPagamento = 'APROVADO' | 'RECUSADO' | 'AGUARDANDO';
+
+/** Forma de pagamento escolhida no checkout. */
+export type MetodoPagamento = 'CARTAO' | 'PIX';
 ```
 
 Rótulos de exibição ficam em mapas na camada de apresentação, nunca no modelo:
@@ -181,10 +181,9 @@ export interface RequisicaoProduto {
 ```ts
 export interface Usuario {
   id: string;
-  nome: string;        // nome completo ou razão social
+  nome: string;        // nome completo
   email: string;
-  documento: string;   // só dígitos: 11 = CPF, 14 = CNPJ
-  telefone?: string;   // só dígitos, com DDD
+  login: string;       // CPF, CNPJ (só dígitos) ou e-mail
   papeis: Papel[];
   criadoEm: string;
 }
@@ -192,20 +191,20 @@ export interface Usuario {
 
 ```json
 {
-  "id": "u1a2b3c4-0001-4000-8000-000000000001",
+  "id": "u-0001",
   "nome": "Maria Souza",
   "email": "maria@exemplo.com",
-  "documento": "11144477735",
-  "telefone": "11987654321",
+  "login": "11144477735",
   "papeis": ["CLIENTE"],
   "criadoEm": "2026-07-15T08:30:00Z"
 }
 ```
 
 **Regras**
-- `documento` é sempre armazenado e trafegado **sem pontuação**. Formatar é papel exclusivo da view.
-- **Não existe campo de tipo de pessoa.** O tipo do documento é inferido pelo comprimento: 11 dígitos = CPF, 14 = CNPJ, qualquer outro tamanho é inválido. Quando a UI precisa do tipo (rótulo, máscara), deriva com `detectarTipoDocumento(documento)` — nunca persiste essa informação.
-- `email` e `documento` são únicos no sistema.
+- `login` e `email` são **campos separados**. O login é a credencial de acesso e pode ser um documento; mesmo quando é e-mail, não precisa ser o mesmo endereço de contato.
+- Quando o login é documento, guarda **só dígitos** — sem ponto, barra ou hífen. É assim que o usuário digita e é assim que fica guardado; não há máscara em lugar nenhum (LGPD, RNF-SEC-03).
+- **Não existe campo de tipo de pessoa.** O formato é inferido com `detectarTipoIdentificador()`: contém `@` é e-mail, 11 dígitos é CPF, 14 é CNPJ. Nunca persistido.
+- `email` e `login` são únicos, e um não pode colidir com o outro — quem entra digita um valor só, e o servidor procura nos dois campos.
 - O objeto **nunca** carrega senha, nem hash, em nenhuma resposta.
 - `papeis` é array porque o backend pode conceder mais de um papel; o front sempre trata como conjunto, nunca assume `papeis[0]`.
 
@@ -222,7 +221,7 @@ export type TipoDocumento = 'CPF' | 'CNPJ';
 export type TipoIdentificador = 'EMAIL' | 'CPF' | 'CNPJ';
 ```
 
-#### `detectarTipoDocumento(documento: string): TipoDocumento | undefined`
+#### `detectarTipoDocumento(valor: string): TipoDocumento | undefined`
 
 | Entrada (após remover não-dígitos) | Resultado |
 |---|---|
@@ -262,17 +261,28 @@ export interface RequisicaoLogin {
 
 ### Cadastro
 
+Cinco campos, nada além disso.
+
 ```ts
 export interface RequisicaoCadastro {
-  nome: string;
+  login: string;   // CPF, CNPJ (só dígitos) ou e-mail
   email: string;
-  documento: string;   // só dígitos, 11 ou 14
-  telefone?: string;
+  nome: string;
   senha: string;
 }
 ```
 
-`confirmacaoSenha` existe **apenas no schema do formulário**, para o `refine` do Zod. Nunca é enviada ao backend.
+| Campo | Regra |
+|---|---|
+| Login | CPF, CNPJ ou e-mail. Documento **apenas com números** — sem ponto, barra ou hífen. Dígito verificador validado |
+| E-mail | Formato válido, minúsculas, único |
+| Nome completo | 3 a 120 caracteres |
+| Senha | Mínimo de 6 caracteres |
+| Confirmação de senha | Igual à senha — **só no front**, nunca enviada |
+
+`confirmacaoSenha` existe **apenas no schema do formulário**, para o `refine` do Zod.
+
+---
 
 ### Resposta de autenticação
 
@@ -284,41 +294,27 @@ export interface RespostaAutenticacao {
 }
 ```
 
-### Claims do JWT
+### Conteúdo do token
 
-**O contrato mais crítico deste documento.** O mock da F2 emite exatamente esta forma, então a F6 não altera nada no consumo.
+**Não é um JWT.** É uma string base64 com o que a interface precisa para se
+montar. Sem header, sem assinatura e sem expiração — nada disso teria contraparte
+sem servidor. Ver `lib/token-simulado.ts` e `docs/prd.md` seção 7.6.
 
 ```ts
-export interface ClaimsJwt {
-  /** Registradas pela RFC 7519 — permanecem em inglês. */
-  sub: string;         // id do usuário
-  iat: number;         // emitido em, epoch em segundos
-  exp: number;         // expira em, epoch em segundos
-  /** Customizadas — em português, espelhadas pelo backend. */
-  email: string;
+export interface ConteudoDoToken {
+  id: string;
   nome: string;
+  email: string;
   papeis: Papel[];
 }
 ```
 
-Payload decodificado de exemplo:
-
-```json
-{
-  "sub": "u1a2b3c4-0001-4000-8000-000000000001",
-  "iat": 1755691200,
-  "exp": 1755694800,
-  "email": "maria@exemplo.com",
-  "nome": "Maria Souza",
-  "papeis": ["CLIENTE"]
-}
-```
-
 **Regras**
-- `decodificarToken()` faz apenas a decodificação base64 do segundo segmento e o parse do JSON. **Não valida assinatura** — isso é responsabilidade do backend.
-- Isso é seguro porque o front usa as claims **só para montar a UI**. Qualquer requisição privilegiada é autorizada de novo pelo servidor.
-- O mock emite um token com assinatura falsa, com header e payload em base64 válidos. Formato idêntico, conteúdo não confiável — exatamente como o real, do ponto de vista do front.
-- Token malformado, expirado ou sem `papeis` → sessão tratada como anônima, sem exceção não capturada.
+- **Os papéis saem do token, nunca do corpo da resposta.** É o token que o backend vai conferir na F6, quando virar JWT de verdade.
+- Token quebrado vira sessão anônima, sem exceção não capturada.
+- Isso é seguro porque o front usa o conteúdo **só para montar a interface**. Toda requisição privilegiada é autorizada de novo pelo servidor.
+
+---
 
 ### Sessão (estado de cliente)
 
@@ -342,12 +338,14 @@ Vive no store Zustand, **não persistido** (ver a decisão de segurança em `doc
 export interface ItemCarrinho {
   produtoId: string;
   /** Snapshot no momento em que o item entrou no carrinho. */
+  slug: string;
   nome: string;
   precoEmCentavos: number;
   urlImagem: string;
   unidade: Unidade;
   quantidade: number;
   totalLinhaEmCentavos: number;   // precoEmCentavos * quantidade
+  estoqueDisponivel: number;      // snapshot do estoque, ver regras
 }
 
 export interface Carrinho {
@@ -384,7 +382,9 @@ export interface Carrinho {
 - Adicionar um produto que já está no carrinho **soma** à quantidade existente, respeitando o teto.
 - O snapshot de nome/preço/imagem existe para o carrinho não quebrar se o produto for editado. O preço é **revalidado no checkout**; divergência mostra aviso antes do pagamento.
 - Totais são sempre **derivados**, nunca digitados. `totalLinhaEmCentavos` e os totais do carrinho são recalculados a cada mutação por uma função pura testada.
-- Frete na fase mockada é fixo: `990` (R$ 9,90), grátis acima de `15000` (R$ 150,00).
+- Frete na fase mockada é fixo: `990` (R$ 9,90), grátis acima de `15000` (R$ 150,00). Carrinho vazio não cobra frete.
+- `slug` entra no snapshot para a linha do carrinho conseguir linkar de volta para a página do produto sem uma segunda requisição.
+- `estoqueDisponivel` é o estoque no momento em que o item entrou. Enquanto o carrinho vive no cliente (F3 a F5), é o único jeito de o teto de quantidade continuar valendo dentro da tela do carrinho. **Na F6 quem impõe o teto é o backend**, e o campo vira redundância informativa — a decisão passa a ser do servidor.
 
 ---
 
@@ -439,10 +439,21 @@ export interface Pedido {
   endereco: Endereco;
   /** Snapshot do comprador — o pedido não depende do usuário atual. */
   nomeComprador: string;
-  documentoComprador: string;     // só dígitos
   emailComprador: string;
+  loginComprador: string;         // mascarado na exibição quando é documento
   criadoEm: string;
   pagoEm?: string;
+  pagamento?: ResumoPagamento;    // preenchido na aprovação; alimenta o comprovante
+  motivoRecusa?: string;
+}
+
+/** O que o comprovante mostra sobre a forma de pagamento. */
+export interface ResumoPagamento {
+  metodo: MetodoPagamento;
+  finalDoCartao?: string;         // só em cartão; o número completo nunca é guardado
+  parcelas?: number;
+  valorParcelaEmCentavos?: number;
+  pagoEm: string;
 }
 ```
 
@@ -473,8 +484,8 @@ export interface Pedido {
     "uf": "SP"
   },
   "nomeComprador": "Maria Souza",
-  "documentoComprador": "11144477735",
   "emailComprador": "maria@exemplo.com",
+  "loginComprador": "11144477735",
   "criadoEm": "2026-08-20T14:30:00Z",
   "pagoEm": "2026-08-20T14:32:00Z"
 }
@@ -490,82 +501,86 @@ export interface Pedido {
 
 ## 10. Pagamento (simulado)
 
+Duas formas, um contrato só: as duas terminam num `ResultadoPagamento`.
+
 ```ts
-export interface RequisicaoPagamento {
+export type MetodoPagamento = 'CARTAO' | 'PIX';
+
+export interface PagamentoComCartao {
+  metodo: 'CARTAO';
   pedidoId: string;
   numeroCartao: string;     // só dígitos — trafega, nunca é persistido no front
   nomeTitular: string;
   validade: string;         // "MM/AA"
   cvv: string;
-  parcelas: number;
+  parcelas: number;         // 1, 2, 3, 6 ou 12
+}
+
+/** Pix não tem dado sensível: só a intenção de gerar a cobrança. */
+export interface PagamentoComPix {
+  metodo: 'PIX';
+  pedidoId: string;
+}
+
+export type RequisicaoPagamento = PagamentoComCartao | PagamentoComPix;
+
+export interface CobrancaPix {
+  pedidoId: string;
+  codigoCopiaECola: string;      // o que o app do banco aceita
+  expiraEm: string;              // ISO 8601
+  validadeEmSegundos: number;    // 300
 }
 
 export interface ResultadoPagamento {
   pedidoId: string;
-  status: StatusPagamento;
-  motivoRecusa?: string;    // presente somente quando o status é RECUSADO
+  status: StatusPagamento;       // APROVADO | RECUSADO | AGUARDANDO
+  motivoRecusa?: string;         // só quando RECUSADO
+  cobrancaPix?: CobrancaPix;     // só quando AGUARDANDO
   processadoEm: string;
 }
 ```
 
-```json
-{
-  "pedidoId": "o1a2b3c4-0001-4000-8000-000000000001",
-  "status": "RECUSADO",
-  "motivoRecusa": "Saldo insuficiente",
-  "processadoEm": "2026-08-20T14:32:00Z"
-}
-```
+**Por que existe `AGUARDANDO`**
+
+Cartão resolve na mesma requisição: aprova ou recusa. Pix não — a cobrança nasce
+na hora, mas quem paga é o aplicativo do banco, depois. Sem um terceiro estado, o
+Pix teria que mentir que foi aprovado ou que foi recusado.
 
 **Regras de segurança — obrigatórias**
 - **Nenhum dado de cartão é persistido no front**: nunca em store, `localStorage`, `sessionStorage`, cache de query ou log. Vive apenas no estado do formulário e é descartado no envio.
-- Os campos de cartão não entram em nenhuma chave de cache do TanStack Query.
-- O pagamento é simulado: o backend responde `APROVADO` ou `RECUSADO` sem gateway real. Não há tokenização — e é justamente por isso que o front não pode guardar nada.
-- Regra do mock, para dar previsibilidade nos testes: cartão terminado em `0000` devolve `RECUSADO` com `"Saldo insuficiente"`; terminado em `1111` devolve `RECUSADO` com `"Cartão expirado"`; qualquer outro devolve `APROVADO`.
+- O pagamento é **mutation**, jamais query: query indexa o cache pelos argumentos, e os argumentos aqui são dados de cartão.
+- No comprovante aparecem só os quatro últimos dígitos. O número completo não é guardado em lugar nenhum.
+- Não há tokenização, porque não há gateway — e é justamente por isso que o front não pode guardar nada.
+
+**Regra do mock, para dar previsibilidade**
+
+| Situação | Resultado |
+|---|---|
+| Cartão terminado em `0000` | `RECUSADO` — "Saldo insuficiente" |
+| Cartão terminado em `1111` | `RECUSADO` — "Cartão expirado" |
+| Qualquer outro cartão | `APROVADO` |
+| Pix confirmado dentro dos 5 minutos | `APROVADO` |
+| Pix confirmado depois dos 5 minutos | `RECUSADO` — "O prazo do Pix expirou" |
+
+**A chave Pix é fictícia.** O `codigoCopiaECola` segue o formato do padrão, e o QR
+é um QR de verdade, mas não existe recebedor do outro lado.
 
 ---
 
-## 11. Movimentação de estoque
+## 11. Alteração de preço
+
+O administrador ajusta preço; **estoque não se edita à mão**.
 
 ```ts
-export interface MovimentacaoEstoque {
-  id: string;
-  produtoId: string;
-  tipo: TipoMovimentacao;
-  quantidade: number;              // sempre positiva; o tipo dá o sinal
-  motivo: string;
-  saldoAnterior: number;
-  saldoPosterior: number;
-  criadoPor: string;               // id do admin
-  criadoEm: string;
-}
-
-export interface RequisicaoMovimentacaoEstoque {
-  tipo: TipoMovimentacao;
-  quantidade: number;
-  motivo: string;
-}
-```
-
-```json
-{
-  "id": "m1a2b3c4-0001-4000-8000-000000000001",
-  "produtoId": "p1a2b3c4-0001-4000-8000-000000000001",
-  "tipo": "ENTRADA",
-  "quantidade": 50,
-  "motivo": "Reposição semanal",
-  "saldoAnterior": 70,
-  "saldoPosterior": 120,
-  "criadoPor": "u1a2b3c4-0003-4000-8000-000000000003",
-  "criadoEm": "2026-08-18T09:12:00Z"
+export interface RequisicaoAlteracaoDePreco {
+  precoEmCentavos: number;   // inteiro positivo
 }
 ```
 
 **Regras**
-- `quantidade` é sempre positiva; `tipo` determina a direção.
-- `SAIDA` maior que o saldo é rejeitada — estoque nunca fica negativo. O front bloqueia antes de enviar e o backend valida de novo.
-- `motivo` é obrigatório, entre 3 e 200 caracteres.
-- O histórico é imutável: correção se faz com uma movimentação contrária, nunca editando ou apagando.
+- O preço é sempre inteiro em centavos. O formulário aceita "19,90" e converte para `1990` antes de enviar.
+- **O estoque tem um caminho só: a venda.** Ele baixa quando um pagamento é aprovado, na transição do pedido para `PAGO`. Não há entrada, saída nem ajuste manual — e por isso também não há histórico de movimentação.
+- Alterar o preço **não** altera pedidos já feitos: o pedido congela nome e preço no momento da compra (seção 9). O que muda é o catálogo daqui para frente, e o checkout avisa quem tiver o preço antigo no carrinho (RF-CHK-08).
 
 ---
 
@@ -687,14 +702,15 @@ Base das fixtures em `Front/src/mocks/fixtures/`. As mesmas usadas pelos testes.
 
 ### Usuários
 
-Documentos válidos por dígito verificador, para exercitar a validação de verdade.
+Dois, um de cada papel. Os documentos são válidos por dígito verificador, para a
+validação ser exercitada de verdade.
 
-| nome | email | documento | tipo derivado | senha | papéis |
-|---|---|---|---|---|---|
-| Maria Souza | `maria@exemplo.com` | `11144477735` | CPF | `senha123` | `["CLIENTE"]` |
-| Mercado Bom Preço LTDA | `contato@bompreco.com` | `11222333000181` | CNPJ | `senha123` | `["CLIENTE"]` |
-| Admin Osvaldo | `admin@coracaodagente.com` | `52998224725` | CPF | `admin123` | `["ADMIN"]` |
+| nome | login | e-mail | senha | papéis |
+|---|---|---|---|---|
+| Maria Souza | `11144477735` (CPF) | `maria@exemplo.com` | `senha123` | `["CLIENTE"]` |
+| Admin Osvaldo | `admin@coracaodagente.com` (e-mail) | `admin@coracaodagente.com` | `admin123` | `["ADMIN"]` |
 
-Permite logar pelas três formas desde a F2: por email, por CPF (11 dígitos) e por CNPJ (14 dígitos).
+Os dois formatos de login ficam exercitados desde o início. Qualquer um dos dois
+entra pelo `login` **ou** pelo e-mail — o servidor procura nos dois campos.
 
 > As senhas só existem no mock. Nunca versionar credencial real.

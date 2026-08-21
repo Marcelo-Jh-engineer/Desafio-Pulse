@@ -20,6 +20,18 @@ export const chavesQuery = {
     raiz: () => ['pedidos'] as const,
     porId: (id: string) => ['pedidos', id] as const,
   },
+  /**
+   * A validacao depende do conteudo do carrinho, entao a chave carrega os ids e
+   * as quantidades — nunca preco de cartao nem dado pessoal.
+   */
+  checkout: {
+    validacao: (assinatura: string) => ['checkout', 'validacao', assinatura] as const,
+  },
+  admin: {
+    produtos: (parametros: object) => ['admin', 'produtos', parametros] as const,
+    produto: (id: string) => ['admin', 'produto', id] as const,
+    categorias: () => ['admin', 'categorias'] as const,
+  },
   estoque: {
     movimentacoes: (produtoId: string) => ['estoque', 'movimentacoes', produtoId] as const,
   },
