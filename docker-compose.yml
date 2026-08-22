@@ -1,0 +1,24 @@
+# Sobe o banco do projeto a partir do Dockerfile da raiz.
+# As variaveis vem do .env, que o compose carrega automaticamente.
+services:
+  banco:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pulse-postgres:16
+    container_name: pulse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # So na porta do host: o container fala sempre 5432 internamente.
+      - '${DB_PORT}:5432'
+    volumes:
+      # Volume nomeado para o dado sobreviver a `docker compose down`.
+      # Para zerar o banco: docker compose down -v
+      - dados-postgres:/var/lib/postgresql/data
+
+volumes:
+  dados-postgres:
