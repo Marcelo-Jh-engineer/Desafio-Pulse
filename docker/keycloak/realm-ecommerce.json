@@ -13,7 +13,7 @@
   "registrationAllowed": true,
   "resetPasswordAllowed": true,
   "passwordPolicy": "length(6)",
-  "accessTokenLifespan": 1800,
+  "accessTokenLifespan": 300,
   "sslRequired": "none",
   "roles": {
     "realm": [
@@ -47,44 +47,26 @@
   },
   "clients": [
     {
-      "clientId": "vcgente-api",
+      "clientId": "ecommerce-api",
       "name": "Backend Spring Boot",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "segredo-de-desenvolvimento",
+      "secret": "9yQFSNk5BPpnKsqbZ6d4CGo8MU1LHc2IDAET0flW",
       "serviceAccountsEnabled": true,
       "directAccessGrantsEnabled": true,
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "attributes": {
-        "access.token.lifespan": "1800"
-      }
-    },
-    {
-      "clientId": "vcgente-front",
-      "name": "SPA React",
-      "enabled": true,
-      "protocol": "openid-connect",
-      "publicClient": true,
-      "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
-      "redirectUris": [
-        "http://localhost:5173/*"
-      ],
-      "webOrigins": [
-        "http://localhost:5173"
-      ],
-      "attributes": {
-        "pkce.code.challenge.method": "S256"
-      }
+      "attributes": {},
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "users": [
     {
-      "username": "service-account-vcgente-api",
+      "username": "service-account-ecommerce-api",
       "enabled": true,
-      "serviceAccountClientId": "vcgente-api",
+      "serviceAccountClientId": "ecommerce-api",
       "clientRoles": {
         "realm-management": [
           "manage-users",
@@ -113,16 +95,16 @@
       ]
     },
     {
-      "username": "admin@exemplo.com",
-      "email": "admin@exemplo.com",
-      "firstName": "Ana",
-      "lastName": "Diretoria",
+      "username": "admin@coracaodagente.com",
+      "email": "admin@coracaodagente.com",
+      "firstName": "Admin",
+      "lastName": "Osvaldo",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "senha123",
+          "value": "admin123",
           "temporary": false
         }
       ],
@@ -139,5 +121,11 @@
     "composite": true,
     "clientRole": false,
     "containerId": "ecommerce"
-  }
+  },
+  "ssoSessionIdleTimeout": 36000,
+  "ssoSessionMaxLifespan": 36000,
+  "clientSessionIdleTimeout": 36000,
+  "clientSessionMaxLifespan": 36000,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0
 }

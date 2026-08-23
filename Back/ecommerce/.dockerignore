@@ -1,0 +1,8 @@
+# O build acontece dentro da imagem; mandar target/ so engorda o contexto e
+# ainda arrisca subir um jar velho da maquina de quem rodou o comando.
+target/
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+*.log
