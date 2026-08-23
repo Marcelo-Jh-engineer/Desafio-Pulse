@@ -33,6 +33,10 @@ ENV POSTGRES_USER=postgres
 # Sem POSTGRES_PASSWORD de fallback de proposito: a imagem falha ao subir se
 # a senha nao for injetada, em vez de subir com uma senha conhecida por todos.
 
+# Roda so no primeiro start, com o volume vazio: cria a database do Keycloak
+# ao lado da database da aplicacao.
+COPY docker/postgres/initdb/ /docker-entrypoint-initdb.d/
+
 EXPOSE 5432
 
 # Flyway e o backend so devem conectar depois que o initdb terminar.

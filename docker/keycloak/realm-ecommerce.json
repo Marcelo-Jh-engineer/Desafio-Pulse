@@ -1,0 +1,143 @@
+{
+  "realm": "ecommerce",
+  "enabled": true,
+  "displayName": "Voce no Coracao da Gente",
+  "loginTheme": "vcgente",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "pt-BR"
+  ],
+  "defaultLocale": "pt-BR",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "passwordPolicy": "length(6)",
+  "accessTokenLifespan": 1800,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      {
+        "name": "CLIENTE",
+        "description": "Compra na loja: carrinho, checkout e pedidos"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Gerencia catalogo, categorias e precos. Nao navega a loja"
+      },
+      {
+        "name": "default-roles-ecommerce",
+        "description": "Papeis concedidos a todo usuario novo do realm",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "CLIENTE"
+          ],
+          "client": {
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
+          }
+        },
+        "clientRole": false,
+        "containerId": "ecommerce"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "vcgente-api",
+      "name": "Backend Spring Boot",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "segredo-de-desenvolvimento",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "1800"
+      }
+    },
+    {
+      "clientId": "vcgente-front",
+      "name": "SPA React",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-vcgente-api",
+      "enabled": true,
+      "serviceAccountClientId": "vcgente-api",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
+    },
+    {
+      "username": "11144477735",
+      "email": "maria@exemplo.com",
+      "firstName": "Maria",
+      "lastName": "Souza",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "senha123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CLIENTE"
+      ]
+    },
+    {
+      "username": "admin@exemplo.com",
+      "email": "admin@exemplo.com",
+      "firstName": "Ana",
+      "lastName": "Diretoria",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "senha123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN"
+      ]
+    }
+  ],
+  "registrationEmailAsUsername": false,
+  "editUsernameAllowed": false,
+  "verifyEmail": false,
+  "defaultRole": {
+    "name": "default-roles-ecommerce",
+    "composite": true,
+    "clientRole": false,
+    "containerId": "ecommerce"
+  }
+}

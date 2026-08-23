@@ -1,4 +1,4 @@
-# Sobe o banco do projeto a partir do Dockerfile da raiz.
+# Infraestrutura local: banco e identidade.
 # As variaveis vem do .env, que o compose carrega automaticamente.
 services:
   banco:
@@ -13,12 +13,52 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      # So na porta do host: o container fala sempre 5432 internamente.
+      # 5440 no host de proposito: 5432 e 5433 ja sao ocupadas pelos servicos
+      # nativos postgresql-x64-17 e -18 do Windows. Dentro do container e 5432.
       - '${DB_PORT}:5432'
     volumes:
       # Volume nomeado para o dado sobreviver a `docker compose down`.
       # Para zerar o banco: docker compose down -v
       - dados-postgres:/var/lib/postgresql/data
+
+  keycloak:
+    build:
+      context: .
+      dockerfile: docker/keycloak/Dockerfile
+    image: pulse-keycloak:26
+    container_name: pulse-keycloak
+    restart: unless-stopped
+    depends_on:
+      banco:
+        condition: service_healthy
+    environment:
+      # So opcoes de RUNTIME aqui. Realm, tema, vendor de banco e health ja
+      # estao gravados na imagem por docker/keycloak/Dockerfile.
+      KC_DB_URL: jdbc:postgresql://banco:5432/keycloak
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      # A claim `iss` do token nasce daqui. Precisa ser a MESMA URL que o front
+      # usa para pegar o token, senao quem validar o JWT recusa por issuer.
+      KC_HOSTNAME: ${KEYCLOAK_URL}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'false'
+      KC_HTTP_ENABLED: 'true'
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      # 8081 no host: 8080 fica com o backend Spring.
+      - '${KEYCLOAK_PORT}:8080'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1
+Host: localhost
+Connection: close
+
+' >&3 && cat <&3 | grep -q 'UP'"
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
 volumes:
   dados-postgres:

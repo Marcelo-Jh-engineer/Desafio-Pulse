@@ -1,0 +1,168 @@
+/*
+ * Marca do "Voce no Coracao da Gente" na tela de login.
+ *
+ * Tokens iguais aos de docs/design.md — a tela de entrada e a primeira
+ * superficie do sistema e nao pode parecer de outro produto.
+ *
+ * Relacao herdada do Dentinho: turquesa preenche, azul contorna.
+ */
+
+:root {
+  --marca-azul-700: #004e98; /* cor oficial: logotipo e contorno */
+  --marca-azul-800: #003f7a;
+  --marca-azul-900: #002d57;
+  --marca-turquesa-300: #73f1dd; /* cor oficial: corpo do mascote */
+  --marca-turquesa-700: #077e6a;
+  --neutro-50: #fbfdfe;
+  --neutro-300: #cbe3eb;
+  --neutro-600: #4d6a80;
+  --neutro-900: #0f1c29;
+  --raio-campo: 8px;
+  --raio-cartao: 12px;
+  --pilha-de-fonte: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body,
+.pf-v5-c-login,
+.pf-v5-c-login__main {
+  font-family: var(--pilha-de-fonte);
+}
+
+/* Fundo: azul solido, como o cabecalho e o rodape da loja. */
+.login-pf body,
+body.login-pf-page,
+body {
+  background: var(--marca-azul-700);
+  color: var(--neutro-900);
+}
+
+/* Mascote acima do titulo. O arquivo entra na imagem pelo Dockerfile. */
+#kc-header-wrapper::before {
+  content: '';
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 12px;
+  background-image: url('../img/dentinho.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#kc-header-wrapper {
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+  padding-bottom: 16px;
+}
+
+/* Cartao branco puro: sobre o azul ele levanta sozinho, sem sombra pesada. */
+.pf-v5-c-login__main {
+  background: #ffffff;
+  border: 1px solid var(--neutro-300);
+  border-radius: var(--raio-cartao);
+}
+
+.pf-v5-c-login__main-header-title,
+#kc-page-title {
+  color: var(--marca-azul-900);
+  font-weight: 700;
+}
+
+.pf-v5-c-form__label-text,
+.pf-v5-c-form__label {
+  color: var(--neutro-600);
+  font-weight: 600;
+}
+
+.pf-v5-c-form-control,
+.pf-v5-c-form-control input,
+input.pf-v5-c-form-control {
+  border-radius: var(--raio-campo);
+  border: 1px solid var(--neutro-300);
+  background: var(--neutro-50);
+  color: var(--neutro-900);
+}
+
+/*
+ * Foco sempre visivel, nunca removido: e o unico jeito de navegar a tela por
+ * teclado. Turquesa porque azul sobre azul some.
+ */
+.pf-v5-c-form-control:focus,
+.pf-v5-c-form-control:focus-within,
+.pf-v5-c-button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--marca-turquesa-300);
+  outline-offset: 2px;
+  border-color: var(--marca-azul-700);
+}
+
+/* Botao primario: fundo azul, texto branco — 8.3:1. */
+.pf-v5-c-button.pf-m-primary,
+input[type='submit'].pf-v5-c-button {
+  background: var(--marca-azul-700);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--raio-campo);
+  font-weight: 600;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+input[type='submit'].pf-v5-c-button:hover {
+  background: var(--marca-azul-800);
+  color: #ffffff;
+}
+
+/*
+ * Link em turquesa-700, nao no turquesa-300 da marca: o tom claro da 1.37:1
+ * sobre branco. Texto branco sobre turquesa claro e proibido no sistema.
+ */
+.pf-v5-c-login__main-footer-band a,
+#kc-registration a,
+#kc-info a,
+a {
+  color: var(--marca-turquesa-700);
+  font-weight: 600;
+}
+
+.pf-v5-c-login__footer,
+#kc-info-message {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* Erro de credencial: aviso claro, sem revelar se o identificador existe. */
+.pf-v5-c-alert.pf-m-danger,
+.pf-v5-c-alert.pf-m-error {
+  border-radius: var(--raio-campo);
+}
+
+/*
+ * Cadastro. A tela de registro faz parte do mesmo tema de login, entao herda
+ * cartao, campo, botao e foco das regras acima. So o que e exclusivo dela
+ * precisa de selecao propria.
+ */
+#kc-register-form .pf-v5-c-form__group,
+#kc-register-form .pf-v5-c-form__group-control {
+  margin-bottom: 4px;
+}
+
+/* Texto de apoio do campo: neutro-600, o primeiro tom que passa 4.5:1. */
+#kc-register-form .pf-v5-c-helper-text__item-text,
+#kc-register-form .pf-v5-c-form__helper-text {
+  color: var(--neutro-600);
+}
+
+/* Erro por campo em vermelho de sistema, com o mesmo raio dos campos. */
+#kc-register-form .pf-v5-c-form-control[aria-invalid='true'],
+#kc-register-form .pf-m-error .pf-v5-c-form-control {
+  border-color: #b91c1c;
+}
+
+/* "Ja tenho conta" volta para o login: link, nao botao concorrente. */
+#kc-form-options a,
+#kc-registration-container a {
+  color: var(--marca-turquesa-700);
+}
