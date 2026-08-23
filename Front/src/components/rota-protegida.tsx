@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSessaoStore } from '@/lib/sessao-store';
+import { EsperaDeSessao } from '@/components/espera-de-sessao';
 import type { Papel } from '@/types/dominio';
 
 interface PropriedadesRotaProtegida {
@@ -32,6 +33,11 @@ export function RotaProtegida({
   const autenticado = useSessaoStore((estado) => estado.autenticado);
   const papeisDaSessao = useSessaoStore((estado) => estado.papeis);
   const temPapel = useSessaoStore((estado) => estado.temPapel);
+  const restaurando = useSessaoStore((estado) => estado.restaurando);
+
+  // Enquanto o cookie de sessao nao foi conferido, ninguem e visitante ainda: um
+  // desvio agora mandaria para o login quem tem sessao valida.
+  if (restaurando) return <EsperaDeSessao />;
 
   if (apenasAnonimo) {
     if (!autenticado) return <>{children}</>;

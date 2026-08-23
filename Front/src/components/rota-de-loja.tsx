@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSessaoStore } from '@/lib/sessao-store';
+import { EsperaDeSessao } from '@/components/espera-de-sessao';
 
 /**
  * Rota da loja: catalogo, produto, carrinho, checkout.
@@ -15,6 +16,11 @@ import { useSessaoStore } from '@/lib/sessao-store';
 export function RotaDeLoja({ children }: { children: ReactNode }) {
   const temPapel = useSessaoStore((estado) => estado.temPapel);
   const autenticado = useSessaoStore((estado) => estado.autenticado);
+  const restaurando = useSessaoStore((estado) => estado.restaurando);
+
+  // Sem esperar, o administrador que recarrega veria a loja por um instante
+  // antes de ser desviado para a area dele.
+  if (restaurando) return <EsperaDeSessao />;
 
   if (autenticado && temPapel(['ADMIN'])) {
     return <Navigate to="/admin/produtos" replace />;

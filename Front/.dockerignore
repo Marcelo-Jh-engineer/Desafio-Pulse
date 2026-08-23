@@ -1,0 +1,13 @@
+# O build acontece dentro da imagem. node_modules do host tem binario compilado
+# para Windows e quebraria o `npm ci` do Alpine.
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+.eslintcache
+*.log
+
+# Modo e URL da API entram por ARG no Dockerfile; os arquivos locais nao devem
+# competir com eles.
+.env.local
+.env.*.local

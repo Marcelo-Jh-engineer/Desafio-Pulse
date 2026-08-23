@@ -6,7 +6,7 @@ import { clienteHttp } from '@/lib/http';
 import { rotaDeEntrada, useSessaoStore } from '@/lib/sessao-store';
 import { useCarrinhoStore } from '@/lib/carrinho-store';
 import { sanitizarDestino } from '@/lib/redirecionamento';
-import { lerToken } from '@/lib/token-simulado';
+import { lerToken } from '@/lib/token';
 import type {
   RequisicaoCadastro,
   RequisicaoLogin,

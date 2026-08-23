@@ -90,3 +90,4 @@ desktop.ini
 
 # Ambiente do backend: contem senha do banco.
 .env
+.

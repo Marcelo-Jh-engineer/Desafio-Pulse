@@ -11,9 +11,8 @@ import type {
   ValidacaoCarrinho,
 } from '@/types/pedido';
 import { calcularCarrinho } from '@/lib/carrinho-calculo';
-import { lerToken } from '@/lib/token-simulado';
+import { lerToken } from '@/lib/token';
 import { produtos } from '@/mocks/fixtures/produtos';
-import { usuarios } from '@/mocks/fixtures/usuarios';
 import { obterLatenciaDoMock } from '@/mocks/latencia';
 
 /**
@@ -44,15 +43,17 @@ function erro(status: number, mensagem: string) {
   return HttpResponse.json(corpo, { status });
 }
 
-/** O "backend" identifica o usuario pelo token do cabecalho, como o real fara. */
+/**
+ * O "backend" identifica o usuario pelo token do cabecalho, como o real faz.
+ *
+ * Nome, e-mail e login saem do proprio token: quem cadastra e autentica e o
+ * backend de verdade, entao o mock nao guarda lista de usuario nenhuma.
+ */
 function usuarioDaRequisicao(request: Request) {
   const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return undefined;
 
-  const conteudo = lerToken(token);
-  if (!conteudo) return undefined;
-
-  return usuarios.find((usuario) => usuario.id === conteudo.id);
+  return lerToken(token);
 }
 
 function gerarNumero(): string {

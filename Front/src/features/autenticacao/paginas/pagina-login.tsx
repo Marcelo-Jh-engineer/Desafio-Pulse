@@ -14,7 +14,13 @@ import { useLogin } from '@/features/autenticacao/hooks/use-autenticar';
 import { normalizarIdentificador } from '@/lib/documento';
 import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
 
-/** Login por e-mail ou CPF — RF-AUTH-02. */
+/**
+ * Login por e-mail, CPF ou CNPJ — RF-AUTH-02.
+ *
+ * O formulário é o mesmo com mock e com API real: o backend recebe estas duas
+ * strings e devolve a sessão. Quem valida a senha é o provedor de identidade,
+ * atrás do backend — esta tela não sabe que ele existe.
+ */
 export function PaginaLogin() {
   const login = useLogin();
   const [parametros] = useSearchParams();
@@ -130,13 +136,14 @@ export function PaginaLogin() {
 }
 
 /**
- * Atalho da fase mockada: sem backend, quem abre a tela nao teria como saber
- * quais credenciais existem. Sai junto com o mock na F6.
+ * Contas provisionadas no realm `ecommerce`, em
+ * `docker/keycloak/realm-ecommerce.json`. Existem para quem for avaliar o
+ * projeto conseguir entrar sem abrir o console do Keycloak.
  */
 function UsuariosDeTeste() {
   return (
     <div className="mt-6 space-y-1 rounded-md bg-muted p-3 text-xs text-muted-foreground">
-      <p className="font-medium text-foreground">Usuários de teste (dados mockados)</p>
+      <p className="font-medium text-foreground">Contas de teste</p>
       <p>
         Cliente — CPF <code>11144477735</code> · senha <code>senha123</code>
       </p>

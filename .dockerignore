@@ -1,0 +1,30 @@
+# Contexto da imagem do Keycloak, que e construida a partir da raiz porque
+# precisa de docker/keycloak/. Sem esta lista, o contexto enviado ao daemon
+# carrega node_modules, target/ e o historico do git inteiro — dezenas de
+# milhares de arquivos para copiar um realm e um tema.
+#
+# Front/ e Back/ tem os proprios .dockerignore: cada um vale quando aquele
+# diretorio e o contexto, e este vale quando o contexto e a raiz.
+
+.git
+.gitignore
+.github
+
+# Segredo nao entra em contexto de build: o compose injeta por environment.
+.env
+.env.*
+!.env.example
+
+node_modules
+**/node_modules
+**/dist
+**/target
+**/.vite
+
+.vscode
+.idea
+**/.DS_Store
+
+# Documentacao nao muda imagem nenhuma, e mexer nela invalidaria o cache.
+docs
+*.md

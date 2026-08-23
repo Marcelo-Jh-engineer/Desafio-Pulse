@@ -18,7 +18,9 @@ import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
 /**
  * Cadastro — RF-AUTH-01. Cinco campos, nada além disso.
  *
- * O novo usuário sai como CLIENTE e já entra logado.
+ * O novo usuário sai como CLIENTE e já entra logado: o backend cria a conta no
+ * provedor de identidade e devolve a sessão pronta, sem pedir a mesma senha
+ * duas vezes.
  */
 export function PaginaCadastro() {
   const cadastro = useCadastro();

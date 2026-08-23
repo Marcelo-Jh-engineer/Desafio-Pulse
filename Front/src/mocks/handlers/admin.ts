@@ -6,10 +6,9 @@ import type {
   RequisicaoCategoria,
   RequisicaoProduto,
 } from '@/types/catalogo';
-import { lerToken } from '@/lib/token-simulado';
+import { lerToken } from '@/lib/token';
 import { categorias } from '@/mocks/fixtures/categorias';
 import { produtos } from '@/mocks/fixtures/produtos';
-import { usuarios } from '@/mocks/fixtures/usuarios';
 import { obterLatenciaDoMock } from '@/mocks/latencia';
 
 /**
@@ -35,10 +34,12 @@ function adminDaRequisicao(request: Request) {
   const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return undefined;
 
+  // O proprio token descreve quem esta chamando: nao ha lista de usuarios do
+  // lado do mock, porque quem cadastra e autentica e o backend real.
   const conteudo = lerToken(token);
   if (!conteudo?.papeis.includes('ADMIN')) return undefined;
 
-  return usuarios.find((usuario) => usuario.id === conteudo.id);
+  return conteudo;
 }
 
 /** Slug gerado pelo backend, sem acento, minusculo, com hifen. */

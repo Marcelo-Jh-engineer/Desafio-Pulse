@@ -1,17 +1,34 @@
-# Infraestrutura local: banco e identidade.
+# Projeto inteiro de pe com um comando: banco, identidade, API e SPA.
 # As variaveis vem do .env, que o compose carrega automaticamente.
+#
+#   docker compose up -d --build     sobe tudo
+#   docker compose down              para, preservando o banco
+#   docker compose down -v           para e ZERA o banco e o realm
+#
+# Depois de subir, a loja abre em http://localhost:${FRONT_PORT}.
 services:
   banco:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: pulse-postgres:16
+    # Imagem oficial direto: nao havia nada de proprio para construir aqui, so
+    # configuracao — e configuracao e o que o compose ja faz.
+    image: postgres:16-alpine
     container_name: pulse-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # UTF-8 e obrigatorio: nome de produto e categoria tem acento. O locale C
+      # mantem ORDER BY igual em qualquer maquina, sem depender de locale
+      # instalado no host; a acentuacao continua correta porque o encoding e UTF8.
+      LANG: C.UTF-8
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    healthcheck:
+      # O Flyway e o backend so podem conectar depois que o initdb terminar.
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
     ports:
       # 5440 no host de proposito: 5432 e 5433 ja sao ocupadas pelos servicos
       # nativos postgresql-x64-17 e -18 do Windows. Dentro do container e 5432.
@@ -20,6 +37,10 @@ services:
       # Volume nomeado para o dado sobreviver a `docker compose down`.
       # Para zerar o banco: docker compose down -v
       - dados-postgres:/var/lib/postgresql/data
+      # Roda so no primeiro start, com o volume vazio: cria a database do
+      # Keycloak ao lado da database da aplicacao. Somente leitura porque o
+      # container nao tem motivo para escrever no script.
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
 
   keycloak:
     build:
@@ -48,17 +69,71 @@ services:
       # 8081 no host: 8080 fica com o backend Spring.
       - '${KEYCLOAK_PORT}:8080'
     healthcheck:
+      # A imagem do Keycloak nao traz curl nem wget, entao a sonda fala HTTP na
+      # mao pelo /dev/tcp do bash. Os CR-LF do printf sao obrigatorios: com LF
+      # puro o Quarkus nao fecha o cabecalho e a conexao morre sem resposta.
       test:
         - CMD-SHELL
-        - "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1
-Host: localhost
-Connection: close
-
-' >&3 && cat <&3 | grep -q 'UP'"
+        - 'exec 3<>/dev/tcp/127.0.0.1/9000 && printf "GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && cat <&3 | grep -q UP'
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 60s
+
+  backend:
+    build:
+      context: ./Back/ecommerce
+    image: pulse-backend:1
+    container_name: pulse-backend
+    restart: unless-stopped
+    depends_on:
+      banco:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    environment:
+      # Nome do servico, nao localhost: dentro da rede do compose cada container
+      # tem o proprio localhost.
+      DB_URL: jdbc:postgresql://banco:5432/${POSTGRES_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SERVER_PORT: 8080
+
+      # Duas URLs para o mesmo Keycloak, e isso e proposital: KEYCLOAK_URL e por
+      # onde o backend chega nele, KEYCLOAK_ISSUER_URL e o endereco que aparece
+      # na claim `iss` do token, gravado pelo KC_HOSTNAME. Usar so uma faria o
+      # backend ou nao alcancar o servidor, ou recusar todo token por issuer.
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+
+      # Origens aceitas pelo CORS, vindas do .env. No compose o nginx faz proxy
+      # e tudo sai da mesma origem, entao isto so vale para quem chamar a API
+      # direto — Swagger, curl ou o front em `npm run dev`.
+      URL_DO_FRONT: ${URL_DO_FRONT}
+    ports:
+      # Exposta para o Swagger e para teste direto com curl. O front nao usa
+      # esta porta: ele fala com o nginx, que fala com o backend pela rede
+      # interna.
+      - '${SERVER_PORT}:8080'
+
+  front:
+    build:
+      context: ./Front
+      args:
+        # Resolvido em tempo de build pelo Vite. Mudar exige `--build`.
+        VITE_API_MODE: ${VITE_API_MODE:-mock}
+        VITE_API_BASE_URL: /api
+    image: pulse-front:1
+    container_name: pulse-front
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${FRONT_PORT}:80'
 
 volumes:
   dados-postgres:
