@@ -1,0 +1,100 @@
+package com.api.ecommerce.infrastructure.entities;
+
+import com.api.ecommerce.infrastructure.enums.Unidade;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import lombok.Getter;
+import org.hibernate.annotations.CreationTimestamp;
+
+/**
+ * Linha do carrinho — docs/models.md secao 7.
+ *
+ * Nome, preco, slug e imagem sao um retrato do produto no instante em que ele
+ * entrou. Nao e duplicacao por descuido: e o unico jeito de o checkout
+ * perceber que o preco mudou desde entao e avisar antes de cobrar (RF-CHK-08).
+ * A quantidade disponivel NAO entra no retrato — o teto e conferido contra o
+ * estoque do momento, que e quem manda.
+ */
+@Entity
+@Table(name = "tb_carrinho_itens")
+@Getter
+public class ItemCarrinho {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "carrinho_id", nullable = false)
+    private Carrinho carrinho;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "produto_id", nullable = false)
+    private Produto produto;
+
+    @Column(nullable = false)
+    private int quantidade;
+
+    @Column(nullable = false, length = 160)
+    private String nome;
+
+    @Column(nullable = false, length = 180)
+    private String slug;
+
+    @Column(nullable = false, length = 255)
+    private String urlImagem;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 3)
+    private Unidade unidade;
+
+    @Column(nullable = false)
+    private long precoEmCentavos;
+
+    /** Derivado, nunca digitado. O banco confere a multiplicacao num CHECK. */
+    @Column(nullable = false)
+    private long totalLinhaEmCentavos;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant adicionadoEm;
+
+    protected ItemCarrinho() {
+        // Exigido pelo JPA.
+    }
+
+    ItemCarrinho(Carrinho carrinho, Produto produto, int quantidade) {
+        this.carrinho = carrinho;
+        this.produto = produto;
+        this.nome = produto.getNome();
+        this.slug = produto.getSlug();
+        this.urlImagem = produto.getUrlImagem();
+        this.unidade = produto.getUnidade();
+        this.precoEmCentavos = produto.getPrecoEmCentavos();
+        alterarQuantidade(quantidade);
+    }
+
+    void alterarQuantidade(int quantidade) {
+        if (quantidade < 1 || quantidade > Carrinho.QUANTIDADE_MAXIMA_POR_ITEM) {
+            throw new IllegalArgumentException(
+                    "Quantidade precisa ficar entre 1 e " + Carrinho.QUANTIDADE_MAXIMA_POR_ITEM);
+        }
+        this.quantidade = quantidade;
+        this.totalLinhaEmCentavos = precoEmCentavos * quantidade;
+    }
+
+    /** O preco do catalogo andou desde que o item entrou no carrinho. */
+    public boolean precoDivergiu() {
+        return precoEmCentavos != produto.getPrecoEmCentavos();
+    }
+}
