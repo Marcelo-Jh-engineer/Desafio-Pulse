@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Bolo de Cenoura">
-  <rect width="400" height="400" fill="#FDF0D5"/>
-  <circle cx="200" cy="178" r="96" fill="none" stroke="#8A5A00" stroke-width="8" opacity="0.35"/>
-  <text x="200" y="178" font-family="Inter, system-ui, sans-serif" font-size="88" font-weight="700"
-        fill="#8A5A00" text-anchor="middle" dominant-baseline="central">BD</text>
-  <text x="200" y="330" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500"
-        fill="#8A5A00" text-anchor="middle" opacity="0.75">Bolo de Cenoura</text>
-</svg>

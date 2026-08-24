@@ -292,7 +292,7 @@ um valor só, e o servidor procura nos dois campos.
 
 - **Alterar quantidade**: atualização otimista, com reversão se a requisição falhar. Teto igual ao menor valor entre 20 e o estoque disponível. Ao chegar em 0, remove com confirmação.
 - **Remover item**: remoção imediata mais toast com "Desfazer" por 5 s.
-- **Recalcular**: subtotal, frete e total são recalculados a cada mudança por uma função pura. Frete grátis acima de R$ 150,00.
+- **Recalcular**: o total é recalculado a cada mudança por uma função pura. Não há frete.
 - **Finalizar compra**: leva a `/checkout`. Desabilitado com carrinho vazio.
 
 ### Acessibilidade

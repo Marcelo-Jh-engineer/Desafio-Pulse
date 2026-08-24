@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Suco de Laranja 1L">
-  <rect width="400" height="400" fill="#D1E9FF"/>
-  <circle cx="200" cy="178" r="96" fill="none" stroke="#0061BD" stroke-width="8" opacity="0.35"/>
-  <text x="200" y="178" font-family="Inter, system-ui, sans-serif" font-size="88" font-weight="700"
-        fill="#0061BD" text-anchor="middle" dominant-baseline="central">SD</text>
-  <text x="200" y="330" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500"
-        fill="#0061BD" text-anchor="middle" opacity="0.75">Suco de Laranja 1L</text>
-</svg>

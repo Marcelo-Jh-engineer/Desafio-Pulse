@@ -495,7 +495,7 @@ Todos em `Front/src/components/` ou dentro da feature, nomeados em português.
 | `RotaProtegida` | Guarda de rota por papel, com destino de retorno |
 | `EstadoVazio` | Mascote, título, texto e ação de recuperação |
 | `EstadoErro` | Mensagem e botão de nova tentativa |
-| `ResumoPedido` | Itens, subtotal, frete e total |
+| `ResumoPedido` | Itens e total |
 
 ### 8.3 Estados obrigatórios
 

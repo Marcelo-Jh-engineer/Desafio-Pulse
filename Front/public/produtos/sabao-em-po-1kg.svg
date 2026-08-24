@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Sabão em Pó 1kg">
-  <rect width="400" height="400" fill="#E8FDF9"/>
-  <circle cx="200" cy="178" r="96" fill="none" stroke="#058E98" stroke-width="8" opacity="0.35"/>
-  <text x="200" y="178" font-family="Inter, system-ui, sans-serif" font-size="88" font-weight="700"
-        fill="#058E98" text-anchor="middle" dominant-baseline="central">SE</text>
-  <text x="200" y="330" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500"
-        fill="#058E98" text-anchor="middle" opacity="0.75">Sabão em Pó 1kg</text>
-</svg>

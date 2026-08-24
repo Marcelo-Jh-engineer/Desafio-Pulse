@@ -350,9 +350,7 @@ export interface ItemCarrinho {
 
 export interface Carrinho {
   itens: ItemCarrinho[];
-  subtotalEmCentavos: number;
-  freteEmCentavos: number;
-  totalEmCentavos: number;        // subtotal + frete
+  totalEmCentavos: number;        // soma das linhas
   quantidadeItens: number;        // soma das quantidades, não o número de linhas
 }
 ```
@@ -370,9 +368,7 @@ export interface Carrinho {
       "totalLinhaEmCentavos": 2397
     }
   ],
-  "subtotalEmCentavos": 2397,
-  "freteEmCentavos": 990,
-  "totalEmCentavos": 3387,
+  "totalEmCentavos": 2397,
   "quantidadeItens": 3
 }
 ```
@@ -382,7 +378,7 @@ export interface Carrinho {
 - Adicionar um produto que já está no carrinho **soma** à quantidade existente, respeitando o teto.
 - O snapshot de nome/preço/imagem existe para o carrinho não quebrar se o produto for editado. O preço é **revalidado no checkout**; divergência mostra aviso antes do pagamento.
 - Totais são sempre **derivados**, nunca digitados. `totalLinhaEmCentavos` e os totais do carrinho são recalculados a cada mutação por uma função pura testada.
-- Frete na fase mockada é fixo: `990` (R$ 9,90), grátis acima de `15000` (R$ 150,00). Carrinho vazio não cobra frete.
+- **Não há frete.** O valor do carrinho é a soma das linhas, e nada mais. Cálculo de frete por CEP está fora de escopo (`docs/prd.md` seção 1.3), e cobrar um valor fixo só para ter um campo de frete seria inventar uma regra de negócio que ninguém pediu.
 - `slug` entra no snapshot para a linha do carrinho conseguir linkar de volta para a página do produto sem uma segunda requisição.
 - `estoqueDisponivel` é o estoque no momento em que o item entrou. Enquanto o carrinho vive no cliente (F3 a F5), é o único jeito de o teto de quantidade continuar valendo dentro da tela do carrinho. **Na F6 quem impõe o teto é o backend**, e o campo vira redundância informativa — a decisão passa a ser do servidor.
 
@@ -433,8 +429,6 @@ export interface Pedido {
   numero: string;                 // legível pelo cliente: "PED-2026-000123"
   status: StatusPedido;
   itens: ItemPedido[];
-  subtotalEmCentavos: number;
-  freteEmCentavos: number;
   totalEmCentavos: number;
   endereco: Endereco;
   /** Snapshot do comprador — o pedido não depende do usuário atual. */
@@ -472,9 +466,7 @@ export interface ResumoPagamento {
       "totalLinhaEmCentavos": 2397
     }
   ],
-  "subtotalEmCentavos": 2397,
-  "freteEmCentavos": 990,
-  "totalEmCentavos": 3387,
+  "totalEmCentavos": 2397,
   "endereco": {
     "cep": "01310100",
     "logradouro": "Avenida Paulista",

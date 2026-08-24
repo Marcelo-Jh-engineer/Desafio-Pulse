@@ -25,7 +25,7 @@ A aplicação é uma SPA em React consumindo uma API REST. As telas são montada
 ### 1.3 Fora de escopo (v1)
 
 - Gateway de pagamento real, tokenização de cartão, conformidade PCI
-- Cálculo de frete por CEP, integração com transportadora
+- Frete de qualquer espécie: cálculo por CEP, valor fixo, integração com transportadora
 - Cupom de desconto, programa de fidelidade, lista de favoritos
 - Avaliação e comentário de produto
 - Recuperação de senha por email, verificação de email, autenticação social
@@ -177,7 +177,7 @@ sistema guarda e o que trafega: só dígitos.
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
 | RF-CHK-01 | Informar endereço de entrega com validação | CLIENTE | P0 | F4 |
-| RF-CHK-02 | Exibir resumo do pedido com itens, frete e total | CLIENTE | P0 | F4 |
+| RF-CHK-02 | Exibir resumo do pedido com itens e total | CLIENTE | P0 | F4 |
 | RF-CHK-03 | Coletar dados do cartão, com escolha de parcelamento | CLIENTE | P0 | F4 |
 | RF-CHK-04 | Exibir estado de processamento durante o pagamento | CLIENTE | P0 | F4 |
 | RF-CHK-05 | Exibir confirmação com número do pedido quando aprovado | CLIENTE | P0 | F4 |
