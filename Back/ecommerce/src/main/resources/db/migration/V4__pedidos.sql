@@ -1,23 +1,19 @@
 -- ---------------------------------------------------------------
 -- Pedido, itens e pagamento
 --
--- O pedido CONGELA tudo que o comprovante precisa: nome e preco de cada item,
--- endereco de entrega e os dados de quem comprou. Editar o produto ou o perfil
--- depois nao pode mexer em pedido passado (docs/models.md secao 9), entao aqui
--- nada e apontado por juncao viva — e copia.
+-- O pedido CONGELA tudo que o comprovante precisa: nome e preco de cada item e
+-- os dados de quem comprou. Editar o produto ou o perfil depois nao pode mexer
+-- em pedido passado (docs/models.md secao 9), entao aqui nada e apontado por
+-- juncao viva — e copia.
 --
--- Nao ha frete: o valor do pedido e a soma das linhas, e nada mais.
+-- O que o pedido NAO guarda: frete, endereco de entrega e numero legivel. O
+-- valor e a soma das linhas; a identidade e o `id_publico`, e nada mais.
 -- ---------------------------------------------------------------
-
--- O numero legivel do pedido ("PED-2026-000123") e montado pela aplicacao a
--- partir desta sequencia. Sequencia, e nao MAX(numero)+1: duas compras
--- simultaneas com contagem lida da tabela dariam o mesmo numero.
-CREATE SEQUENCE sq_numero_pedido START 1;
 
 CREATE TABLE tb_pedidos (
     id                    BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    -- Identifica o pedido em toda parte: URL, comprovante e suporte.
     id_publico            UUID         NOT NULL DEFAULT gen_random_uuid(),
-    numero                VARCHAR(20)  NOT NULL,
     usuario_id            BIGINT       NOT NULL REFERENCES tb_usuarios (id),
     -- De onde o pedido nasceu. Fica nulo se o carrinho for apagado; o pedido
     -- nao depende dele para nada depois de criado.
@@ -28,17 +24,6 @@ CREATE TABLE tb_pedidos (
     -- sempre o mesmo numero, e duas colunas que nunca discordam sao uma
     -- oportunidade de discordarem por engano.
     total_em_centavos     BIGINT       NOT NULL,
-
-    -- Endereco de entrega, copiado. O prefixo existe porque `numero` sozinho
-    -- ja e o numero do pedido nesta mesma tabela.
-    endereco_cep          VARCHAR(8)   NOT NULL,
-    endereco_logradouro   VARCHAR(160) NOT NULL,
-    -- Texto, nao inteiro: "s/n" e um numero de porta valido.
-    endereco_numero       VARCHAR(20)  NOT NULL,
-    endereco_complemento  VARCHAR(80),
-    endereco_bairro       VARCHAR(120) NOT NULL,
-    endereco_cidade       VARCHAR(120) NOT NULL,
-    endereco_uf           VARCHAR(2)   NOT NULL,
 
     -- Retrato do comprador. O pedido nao depende do usuario atual.
     nome_comprador        VARCHAR(120) NOT NULL,
@@ -55,12 +40,9 @@ CREATE TABLE tb_pedidos (
     motivo_recusa         VARCHAR(160),
 
     CONSTRAINT uk_pedidos_publico      UNIQUE (id_publico),
-    CONSTRAINT uk_pedidos_numero       UNIQUE (numero),
     CONSTRAINT uk_pedidos_idempotencia UNIQUE (usuario_id, chave_idempotencia),
     CONSTRAINT ck_pedidos_status       CHECK (status IN ('PENDENTE','PAGO','FALHOU','CANCELADO')),
     CONSTRAINT ck_pedidos_total        CHECK (total_em_centavos >= 0),
-    CONSTRAINT ck_pedidos_cep          CHECK (endereco_cep ~ '^[0-9]{8}$'),
-    CONSTRAINT ck_pedidos_uf           CHECK (endereco_uf ~ '^[A-Z]{2}$'),
     -- `pago_em` so existe em pedido pago, e pedido pago nao existe sem ele.
     CONSTRAINT ck_pedidos_pago_em      CHECK ((status = 'PAGO') = (pago_em IS NOT NULL))
 );

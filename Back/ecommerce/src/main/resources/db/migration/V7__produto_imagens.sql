@@ -7,19 +7,17 @@
 --      outro lugar, como os /produtos/*.jpg da carga inicial;
 --   2. os bytes aqui, nesta tabela.
 --
--- Por isso url_imagem deixa de ser obrigatoria: produto com imagem gravada nao
--- tem caminho externo nenhum a declarar. Quem resolve qual das duas vale e a
--- API, num ponto so — e para o front nada muda, porque ele continua recebendo
--- o campo `urlImagem` como sempre (docs/models.md secao 4). O que muda e para
--- onde essa URL aponta.
+-- url_imagem ja nasce opcional na V2, justamente por isso: produto com imagem
+-- gravada nao tem caminho externo nenhum a declarar. Quem resolve qual das duas
+-- vale e a API, num ponto so — e para o front nada muda, porque ele continua
+-- recebendo o campo `urlImagem` como sempre (docs/models.md secao 4). O que
+-- muda e para onde essa URL aponta.
 --
 -- Tabela separada, e nao coluna em tb_produtos, porque a listagem do catalogo
 -- le o produto inteiro a cada pagina: com os bytes na mesma linha, montar uma
 -- grade de doze miniaturas traria doze imagens do banco junto. Aqui os bytes so
 -- saem quando alguem pede exatamente esta imagem.
 -- ---------------------------------------------------------------
-
-ALTER TABLE tb_produtos ALTER COLUMN url_imagem DROP NOT NULL;
 
 CREATE TABLE tb_produto_imagens (
     id                BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

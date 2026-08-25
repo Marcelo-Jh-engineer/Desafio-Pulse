@@ -32,7 +32,6 @@ CREATE TABLE tb_carrinho_itens (
     quantidade               INTEGER      NOT NULL,
     -- Retrato do produto na hora em que entrou.
     nome                     VARCHAR(160) NOT NULL,
-    slug                     VARCHAR(180) NOT NULL,
     url_imagem               VARCHAR(255) NOT NULL,
     unidade                  VARCHAR(3)   NOT NULL,
     preco_em_centavos        BIGINT       NOT NULL,
