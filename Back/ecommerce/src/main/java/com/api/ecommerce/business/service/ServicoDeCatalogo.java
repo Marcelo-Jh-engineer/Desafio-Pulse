@@ -74,6 +74,23 @@ public class ServicoDeCatalogo {
         return paraDto(produtos.buscarNoCatalogo(idCategoria, padrao, paginacaoDe(pagina, tamanho)));
     }
 
+    /**
+     * Um produto — RF-CAT-07.
+     *
+     * Produto inativo devolve 404 igual a id inventado. A mensagem tambem e a
+     * mesma: dizer "este produto foi desativado" entregaria, a quem varre a
+     * API, a lista do que ja existiu.
+     */
+    @Transactional(readOnly = true)
+    public ProdutoDto porId(UUID idPublico) {
+        Produto produto = produtos.findByIdPublico(idPublico)
+                .filter(Produto::isAtivo)
+                .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Nao encontramos este produto."));
+
+        boolean temImagem = imagens.existsByProdutoIdPublico(idPublico);
+        return ProdutoDto.de(produto, urlDaImagem(produto, temImagem));
+    }
+
     /** A lista e curta e estavel, entao sai como array puro, sem paginacao. */
     @Transactional(readOnly = true)
     public List<CategoriaDto> categoriasAtivas() {
@@ -121,11 +138,12 @@ public class ServicoDeCatalogo {
         Set<UUID> comImagemNoBanco = ids.isEmpty() ? Set.of() : imagens.quaisTemImagem(ids);
 
         return PaginaDto.de(pagina, produto ->
-                ProdutoDto.de(produto, urlDaImagem(produto, comImagemNoBanco)));
+                ProdutoDto.de(produto, urlDaImagem(produto,
+                        comImagemNoBanco.contains(produto.getIdPublico()))));
     }
 
-    private String urlDaImagem(Produto produto, Set<UUID> comImagemNoBanco) {
-        if (comImagemNoBanco.contains(produto.getIdPublico())) {
+    private String urlDaImagem(Produto produto, boolean temImagemNoBanco) {
+        if (temImagemNoBanco) {
             return "/api/produtos/" + produto.getIdPublico() + "/imagem";
         }
         return produto.getUrlImagem();

@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Ponto unico de traducao de excecao para resposta. TODA excecao sai como
@@ -85,6 +86,19 @@ public class ExceptionMapper {
         LOG.error("Falha na conversa com o provedor de identidade", excecao);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(ErroDto.de(502, "Servico de identidade indisponivel. Tente novamente em instantes."));
+    }
+
+    /**
+     * Caminho que nao existe.
+     *
+     * Sem este tratamento a excecao caia no handler generico e virava 500: a
+     * API dizia "o erro foi meu" para uma URL que o cliente inventou. Quem
+     * varre a API le 500 como sinal de que achou algo.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErroDto> rotaInexistente(NoResourceFoundException excecao) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErroDto.de(404, "Recurso nao encontrado."));
     }
 
     @ExceptionHandler(Exception.class)

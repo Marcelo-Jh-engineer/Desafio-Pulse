@@ -74,6 +74,24 @@ public class CatalogoController {
         return servico.listar(categoria, null, pagina, tamanho);
     }
 
+    /**
+     * Um produto — RF-CAT-07.
+     *
+     * Enderecado pelo id publico, o mesmo que a listagem devolve. Produto
+     * inativo responde 404, como id inexistente.
+     */
+    @Operation(summary = "Devolve um produto",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "O produto"),
+                @ApiResponse(responseCode = "404", description = "Inexistente ou inativo",
+                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+            })
+    @GetMapping("/produtos/{id}")
+    public ProdutoDto porId(
+            @Parameter(description = "Id publico do produto") @PathVariable UUID id) {
+        return servico.porId(id);
+    }
+
     /** Lista curta e estavel: array puro, sem envelope de paginacao. */
     @Operation(summary = "Lista as categorias ativas",
             description = "So as ativas, na ordem definida pelo admin. O front nunca codifica esta lista.")
