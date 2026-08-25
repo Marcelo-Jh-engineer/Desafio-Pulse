@@ -70,6 +70,12 @@ public class ConfiguracaoDeSeguranca {
                                 "/api/catalogo/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Carrinho e de CLIENTE, e so dele. Sem esta linha as
+                        // rotas cairiam em `anyRequest().authenticated()` e um
+                        // token de ADMIN compraria — o botao escondido na tela
+                        // e UX, nao autorizacao. A matriz RBAC do CLAUDE.md diz
+                        // que o admin nao navega a loja, e e aqui que isso vale.
+                        .requestMatchers("/api/carrinho/**").hasRole("CLIENTE")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(conversor)));
         return http.build();

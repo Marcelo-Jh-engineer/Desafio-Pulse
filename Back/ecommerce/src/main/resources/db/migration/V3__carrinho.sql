@@ -8,6 +8,11 @@
 -- desnormalizacao gratuita: e o unico jeito de o checkout perceber que o preco
 -- mudou desde que a pessoa colocou o item no carrinho e avisar antes de cobrar
 -- (RF-CHK-08).
+--
+-- O retrato NAO inclui a imagem. Ela nao e um dado do produto que possa mudar
+-- de valor: e derivada do id, que a linha ja guarda em produto_id. Copiar
+-- tb_produtos.url_imagem seria copiar nulo, porque a foto vive em
+-- tb_produto_imagens desde a V7.
 -- ---------------------------------------------------------------
 CREATE TABLE tb_carrinhos (
     id            BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -32,14 +37,14 @@ CREATE TABLE tb_carrinho_itens (
     quantidade               INTEGER      NOT NULL,
     -- Retrato do produto na hora em que entrou.
     nome                     VARCHAR(160) NOT NULL,
-    url_imagem               VARCHAR(255) NOT NULL,
     unidade                  VARCHAR(3)   NOT NULL,
     preco_em_centavos        BIGINT       NOT NULL,
     total_linha_em_centavos  BIGINT       NOT NULL,
     adicionado_em            TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    -- Teto de 20 por linha, igual ao do front. O limite por estoque e
-    -- conferido no servico, contra o estoque do momento, nao contra o retrato.
-    CONSTRAINT ck_carrinho_item_qtd   CHECK (quantidade BETWEEN 1 AND 20),
+    -- Quantidade e positiva, e so isso: nao ha teto por linha. O limite real e
+    -- o estoque, conferido no servico contra o estoque do momento — e nao
+    -- contra o retrato guardado aqui.
+    CONSTRAINT ck_carrinho_item_qtd   CHECK (quantidade > 0),
     CONSTRAINT ck_carrinho_item_total CHECK (total_linha_em_centavos = preco_em_centavos * quantidade),
     -- Adicionar de novo o mesmo produto soma na linha existente; nao cria
     -- uma segunda.
