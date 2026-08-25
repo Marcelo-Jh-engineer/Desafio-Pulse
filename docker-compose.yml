@@ -17,11 +17,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      # UTF-8 e obrigatorio: nome de produto e categoria tem acento. O locale C
-      # mantem ORDER BY igual em qualquer maquina, sem depender de locale
-      # instalado no host; a acentuacao continua correta porque o encoding e UTF8.
+      # Colacao e caixa pelo provedor ICU, em pt-BR.
+      #
+      # Nao e preciosismo: com o locale C que estava aqui antes, LOWER() nao
+      # rebaixa letra acentuada maiuscula — LOWER('Agua') mantinha o "A" com
+      # acento — e a busca do catalogo por "agua" em minusculas nao achava
+      # "Agua Sanitaria". ICU faz o mapeamento de caixa direito e ainda ordena
+      # em portugues, com acento junto da letra base.
+      #
+      # ICU e nao locale do sistema porque esta imagem e Alpine, que usa musl e
+      # nao tem locale nenhum: pt_BR.UTF-8 simplesmente nao existe aqui. O ICU
+      # vem dentro do PostgreSQL 16, entao o resultado e o mesmo em qualquer
+      # maquina — que era a razao de ter escolhido o locale C no comeco.
+      #
+      # `--locale=C.UTF-8` continua ali para os LC_* que o ICU nao cobre.
       LANG: C.UTF-8
-      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale-provider=icu --icu-locale=pt-BR --locale=C.UTF-8'
     healthcheck:
       # O Flyway e o backend so podem conectar depois que o initdb terminar.
       test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
@@ -124,7 +135,7 @@ services:
       context: ./Front
       args:
         # Resolvido em tempo de build pelo Vite. Mudar exige `--build`.
-        VITE_API_MODE: ${VITE_API_MODE:-mock}
+        # Mesma origem: o nginx do proprio front faz proxy de /api para a API.
         VITE_API_BASE_URL: /api
     image: pulse-front:1
     container_name: pulse-front
