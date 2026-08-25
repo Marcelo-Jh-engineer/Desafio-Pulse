@@ -11,9 +11,8 @@ import com.api.ecommerce.infrastructure.repositories.RepositorioDeImagemDeProdut
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeProduto;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,13 +46,16 @@ public class ServicoDeCatalogo {
     private final RepositorioDeProduto produtos;
     private final RepositorioDeCategoria categorias;
     private final RepositorioDeImagemDeProduto imagens;
+    private final ServicoDeImagemDeProduto enderecoDaImagem;
 
     public ServicoDeCatalogo(RepositorioDeProduto produtos,
                              RepositorioDeCategoria categorias,
-                             RepositorioDeImagemDeProduto imagens) {
+                             RepositorioDeImagemDeProduto imagens,
+                             ServicoDeImagemDeProduto enderecoDaImagem) {
         this.produtos = produtos;
         this.categorias = categorias;
         this.imagens = imagens;
+        this.enderecoDaImagem = enderecoDaImagem;
     }
 
     /**
@@ -87,8 +89,7 @@ public class ServicoDeCatalogo {
                 .filter(Produto::isAtivo)
                 .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Nao encontramos este produto."));
 
-        boolean temImagem = imagens.existsByProdutoIdPublico(idPublico);
-        return ProdutoDto.de(produto, urlDaImagem(produto, temImagem));
+        return ProdutoDto.de(produto, enderecoDaImagem.urlDe(produto));
     }
 
     /** A lista e curta e estavel, entao sai como array puro, sem paginacao. */
@@ -121,32 +122,12 @@ public class ServicoDeCatalogo {
         return PageRequest.of(indice, porPagina);
     }
 
-    /**
-     * Monta o DTO ja com o endereco da imagem resolvido.
-     *
-     * A foto tem duas origens possiveis — um caminho externo em
-     * `url_imagem` ou os bytes em tb_produto_imagens — e este e o UNICO lugar
-     * que decide entre as duas. Uma consulta para a pagina inteira, nao uma por
-     * produto: perguntar "tem imagem?" doze vezes por tela seria doze idas ao
-     * banco para montar uma grade.
-     */
+    /** Monta o DTO ja com o endereco da imagem resolvido, numa consulta so. */
     private PaginaDto<ProdutoDto> paraDto(Page<Produto> pagina) {
-        Set<UUID> ids = pagina.getContent().stream()
-                .map(Produto::getIdPublico)
-                .collect(Collectors.toSet());
-
-        Set<UUID> comImagemNoBanco = ids.isEmpty() ? Set.of() : imagens.quaisTemImagem(ids);
+        Map<UUID, String> urls = enderecoDaImagem.urlsDe(pagina.getContent());
 
         return PaginaDto.de(pagina, produto ->
-                ProdutoDto.de(produto, urlDaImagem(produto,
-                        comImagemNoBanco.contains(produto.getIdPublico()))));
-    }
-
-    private String urlDaImagem(Produto produto, boolean temImagemNoBanco) {
-        if (temImagemNoBanco) {
-            return "/api/produtos/" + produto.getIdPublico() + "/imagem";
-        }
-        return produto.getUrlImagem();
+                ProdutoDto.de(produto, urls.get(produto.getIdPublico())));
     }
 
     /**

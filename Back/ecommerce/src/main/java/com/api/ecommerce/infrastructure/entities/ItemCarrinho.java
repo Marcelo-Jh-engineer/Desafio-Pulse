@@ -19,8 +19,14 @@ import org.hibernate.annotations.CreationTimestamp;
 /**
  * Linha do carrinho — docs/models.md secao 7.
  *
- * Nome, preco e imagem sao um retrato do produto no instante em que ele
- * entrou. Nao e duplicacao por descuido: e o unico jeito de o checkout
+ * Nome, preco e unidade sao um retrato do produto no instante em que ele
+ * entrou.
+ *
+ * A IMAGEM nao entra no retrato. Ela nao muda de valor como o preco muda: e
+ * derivada do id do produto, que esta logo ali em `produto`. Copiar
+ * `Produto.urlImagem` seria copiar nulo — a foto mora em tb_produto_imagens — e
+ * ainda espalharia por aqui a regra de como montar o endereco dela, que hoje
+ * vive num lugar so, em ServicoDeCatalogo. Nao e duplicacao por descuido: e o unico jeito de o checkout
  * perceber que o preco mudou desde entao e avisar antes de cobrar (RF-CHK-08).
  * A quantidade disponivel NAO entra no retrato — o teto e conferido contra o
  * estoque do momento, que e quem manda.
@@ -48,9 +54,6 @@ public class ItemCarrinho {
     @Column(nullable = false, length = 160)
     private String nome;
 
-    @Column(nullable = false, length = 255)
-    private String urlImagem;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 3)
     private Unidade unidade;
@@ -74,16 +77,19 @@ public class ItemCarrinho {
         this.carrinho = carrinho;
         this.produto = produto;
         this.nome = produto.getNome();
-        this.urlImagem = produto.getUrlImagem();
         this.unidade = produto.getUnidade();
         this.precoEmCentavos = produto.getPrecoEmCentavos();
         alterarQuantidade(quantidade);
     }
 
+    /**
+     * Nao ha teto por linha: o unico limite e o estoque, conferido por
+     * ServicoDeEstoque antes de esta linha ser tocada. Um teto fixo aqui seria
+     * uma segunda regra sobre quantidade, sem nada que a justifique.
+     */
     void alterarQuantidade(int quantidade) {
-        if (quantidade < 1 || quantidade > Carrinho.QUANTIDADE_MAXIMA_POR_ITEM) {
-            throw new IllegalArgumentException(
-                    "Quantidade precisa ficar entre 1 e " + Carrinho.QUANTIDADE_MAXIMA_POR_ITEM);
+        if (quantidade < 1) {
+            throw new IllegalArgumentException("Quantidade precisa ser pelo menos 1");
         }
         this.quantidade = quantidade;
         this.totalLinhaEmCentavos = precoEmCentavos * quantidade;

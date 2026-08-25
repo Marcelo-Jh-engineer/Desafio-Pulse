@@ -3,6 +3,7 @@ package com.api.ecommerce.controllers;
 import com.api.ecommerce.dtos.ErroDto;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
+import com.api.ecommerce.infrastructure.exception.ExcecaoDeEstoqueInsuficiente;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeIdentidade;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
 import java.util.HashMap;
@@ -50,6 +51,21 @@ public class ExceptionMapper {
     public ResponseEntity<ErroDto> semPermissao(AccessDeniedException excecao) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErroDto.de(403, "Voce nao tem permissao para esta acao."));
+    }
+
+    /**
+     * Estoque nao cobre o que foi pedido.
+     *
+     * 409, e nao 422: o pedido esta bem formado e seria valido em outro
+     * momento — o que mudou foi o estado do estoque. `errosPorCampo` leva a
+     * quantidade disponivel na chave `quantidade`, que e o campo que a tela vai
+     * destacar.
+     */
+    @ExceptionHandler(ExcecaoDeEstoqueInsuficiente.class)
+    public ResponseEntity<ErroDto> estoqueInsuficiente(ExcecaoDeEstoqueInsuficiente excecao) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErroDto.de(409, excecao.getMessage(),
+                        Map.of("quantidade", String.valueOf(excecao.getDisponivel()))));
     }
 
     @ExceptionHandler(ExcecaoDeNaoEncontrado.class)

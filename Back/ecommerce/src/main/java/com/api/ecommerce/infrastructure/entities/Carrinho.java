@@ -24,23 +24,11 @@ import lombok.Getter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Carrinho do servidor — docs/models.md secao 7.
- *
- * Um aberto por pessoa, garantido por indice parcial no banco. O carrinho nao
- * e apagado quando vira pedido: fica CONVERTIDO, para o pedido conseguir
- * apontar de onde veio.
- *
- * Totais nao tem coluna. Sao sempre derivados dos itens, porque total gravado
- * e total que pode discordar das linhas que o formam.
- */
+
 @Entity
 @Table(name = "tb_carrinhos")
 @Getter
 public class Carrinho {
-
-    /** Teto por linha, igual ao do front. O estoque impoe o limite menor. */
-    public static final int QUANTIDADE_MAXIMA_POR_ITEM = 20;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -82,7 +70,7 @@ public class Carrinho {
      * unique (carrinho_id, produto_id) exige.
      */
     public ItemCarrinho adicionar(Produto produto, int quantidade) {
-        Optional<ItemCarrinho> existente = linhaDe(produto);
+        Optional<ItemCarrinho> existente = jaExisteItem(produto);
         if (existente.isPresent()) {
             ItemCarrinho item = existente.get();
             item.alterarQuantidade(item.getQuantidade() + quantidade);
@@ -95,7 +83,7 @@ public class Carrinho {
 
     /** Chegar a zero remove a linha, em vez de guardar um item de quantidade 0. */
     public void alterarQuantidade(Produto produto, int quantidade) {
-        Optional<ItemCarrinho> linha = linhaDe(produto);
+        Optional<ItemCarrinho> linha = jaExisteItem(produto);
         if (linha.isEmpty()) {
             return;
         }
@@ -107,7 +95,7 @@ public class Carrinho {
     }
 
     public void remover(Produto produto) {
-        linhaDe(produto).ifPresent(itens::remove);
+        jaExisteItem(produto).ifPresent(itens::remove);
     }
 
     public void esvaziar() {
@@ -122,7 +110,25 @@ public class Carrinho {
         this.status = StatusCarrinho.ABANDONADO;
     }
 
-    public long subtotalEmCentavos() {
+    /**
+     * Total do carrinho: `preco * quantidade` de cada linha, somado.
+     *
+     * Calculado aqui, e nao gravado em coluna nem somado pelo banco. Gravado,
+     * seria um numero capaz de discordar das linhas que o formam. Somado pelo
+     * banco — o @Formula do Hibernate faria isso — sairia certo na leitura e
+     * desatualizado logo depois de adicionar um item, porque so recalcula no
+     * SELECT seguinte; para a resposta sair correta seria preciso um flush e um
+     * refresh a cada mudanca.
+     *
+     * Do jeito que esta, o valor acompanha a lista em memoria e nao depende de
+     * ida ao banco. O preco usado e o da LINHA, congelado quando o item entrou,
+     * e nao o do produto hoje: o carrinho mostra o valor que a pessoa viu ao
+     * adicionar, e a divergencia com o catalogo e assunto do checkout
+     * (RF-CHK-08).
+     *
+     * Carrinho sem item soma zero, nao nulo.
+     */
+    public long totalEmCentavos() {
         return itens.stream().mapToLong(ItemCarrinho::getTotalLinhaEmCentavos).sum();
     }
 
@@ -131,7 +137,7 @@ public class Carrinho {
         return itens.stream().mapToInt(ItemCarrinho::getQuantidade).sum();
     }
 
-    private Optional<ItemCarrinho> linhaDe(Produto produto) {
+    private Optional<ItemCarrinho> jaExisteItem(Produto produto) {
         return itens.stream().filter(item -> item.getProduto().equals(produto)).findFirst();
     }
 
