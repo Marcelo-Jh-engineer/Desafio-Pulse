@@ -2,7 +2,7 @@
 
 Contrato de dados do frontend. Os tipos em `Front/src/types/` espelham este documento, e o backend Spring Boot expõe **exatamente estes nomes de campo** no JSON — não existe camada de tradução entre front e back.
 
-> Ao alterar qualquer tipo aqui, atualize também `docs/behavior.md` (telas que consomem) e as fixtures de mock em `Front/src/mocks/`.
+> Ao alterar qualquer tipo aqui, atualize também `docs/behavior.md` (telas que consomem) e os DTOs do backend, que são quem serve estes dados. Não há mais mock no projeto.
 
 ---
 
@@ -112,7 +112,6 @@ export interface RequisicaoCategoria {
 ```ts
 export interface Produto {
   id: string;
-  sku: string;
   slug: string;
   nome: string;
   descricao: string;
@@ -122,21 +121,18 @@ export interface Produto {
   categoria: Categoria;      // aninhada na leitura
   quantidadeEstoque: number;
   ativo: boolean;
-  criadoEm: string;
-  atualizadoEm: string;
 }
 ```
 
 ```json
 {
   "id": "p1a2b3c4-0001-4000-8000-000000000001",
-  "sku": "HF-BAN-001",
   "slug": "banana-prata-kg",
   "nome": "Banana Prata",
   "descricao": "Banana prata selecionada, doce e madura. Vendida por quilo.",
   "precoEmCentavos": 799,
   "unidade": "KG",
-  "urlImagem": "/produtos/banana-prata.jpg",
+  "urlImagem": "/api/produtos/p1a2b3c4-0001-4000-8000-000000000001/imagem",
   "categoria": {
     "id": "c1a2b3c4-0001-4000-8000-000000000001",
     "nome": "Hortifrúti",
@@ -145,9 +141,7 @@ export interface Produto {
     "ativa": true
   },
   "quantidadeEstoque": 120,
-  "ativo": true,
-  "criadoEm": "2026-08-01T10:00:00Z",
-  "atualizadoEm": "2026-08-18T09:12:00Z"
+  "ativo": true
 }
 ```
 
@@ -170,7 +164,8 @@ export interface RequisicaoProduto {
 **Regras**
 - `quantidadeEstoque === 0` → produto aparece no catálogo como **indisponível**, sem botão de compra. Não some da listagem.
 - `ativo: false` → some do catálogo público, continua visível na listagem admin.
-- `slug` e `sku` são únicos. `slug` é gerado pelo backend a partir de `nome`.
+- `slug` e `sku` são únicos no banco, e o `slug` é gerado pelo backend a partir de `nome`.
+- **O `sku` não sai no catálogo público.** É código interno de estoque: quem compra nunca o lê nem o digita. Ele aparece na listagem do admin, que opera por código, e continua obrigatório no cadastro (`RequisicaoProduto`).
 - `precoEmCentavos` é inteiro positivo. O formulário aceita "19,90" e converte para `1990` antes de enviar.
 - Produtos vendidos por peso (`KG`, `G`, `L`, `ML`) ainda usam `quantidade` inteira no carrinho — a unidade é só rótulo.
 
@@ -598,7 +593,7 @@ export interface Pagina<T> {
 {
   "conteudo": [],
   "pagina": 0,
-  "tamanho": 12,
+  "tamanho": 10,
   "totalElementos": 47,
   "totalPaginas": 4,
   "primeira": true,
@@ -645,8 +640,7 @@ export interface ParametrosCatalogo {
   categoria?: string;     // slug da categoria
   busca?: string;
   pagina?: number;        // base 0
-  tamanho?: number;       // padrão 12
-  ordenacao?: 'RELEVANCIA' | 'PRECO_ASC' | 'PRECO_DESC' | 'NOME_ASC';
+  tamanho?: number;       // padrão 10, máximo 60
 }
 ```
 
@@ -658,7 +652,7 @@ Refletidos na query string do catálogo (`/?categoria=bebidas&pagina=1`), para a
 
 ## 14. Dados de exemplo (fixtures)
 
-Base das fixtures em `Front/src/mocks/fixtures/`. As mesmas usadas pelos testes.
+Carga inicial do banco, em `Back/ecommerce/src/main/resources/db/migration/V6__seed_catalogo.sql`. O catálogo real tem 52 produtos; a tabela abaixo é o núcleo que veio de `docs/models.md` e continua lá.
 
 ### Categorias
 

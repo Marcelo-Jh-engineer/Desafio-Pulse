@@ -14,10 +14,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        // Com VITE_API_MODE=mock o worker do MSW intercepta antes da rede e este
-        // proxy nunca e usado. Com `http`, ele mantem o SPA e a API na mesma
-        // origem: sem isso o login vira um passeio entre 5173, 8080 e 8081 com
-        // CORS no meio, para nenhum ganho.
+        // Mantem o SPA e a API na mesma origem: sem isso o login vira um
+        // passeio entre 5173, 8080 e 8081 com CORS no meio, para nenhum ganho.
         '/api': {
           target: ambiente.VITE_API_PROXY_TARGET || 'http://localhost:8080',
           changeOrigin: true,

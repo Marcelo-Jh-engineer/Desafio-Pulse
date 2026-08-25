@@ -69,13 +69,12 @@ O header é a manifestação mais visível do RBAC e reage a toda mudança de se
 - Clicar no cartão abre `/produtos/:slug`.
 - Selecionar categoria aplica o filtro, **volta para a página 1** e atualiza a query string.
 - Buscar aplica atraso de 300 ms antes de disparar a requisição, e também volta para a página 1.
-- Ordenar atualiza a query string sem perder o filtro.
-- Paginar preserva filtro, busca e ordenação, e rola para o topo da grade.
+- Paginar preserva filtro e busca, e rola para o topo da grade.
 - Adicionar ao carrinho a partir do cartão: comportamento no fluxo 12.1.
 
 ### Estado na URL
 
-Tudo em `ParametrosCatalogo` vive na query string: `/?categoria=bebidas&busca=suco&ordenacao=PRECO_ASC&pagina=1`.
+Tudo em `ParametrosCatalogo` vive na query string: `/?categoria=bebidas&busca=suco&pagina=1`.
 
 Isso torna a listagem compartilhável, faz o botão voltar do navegador funcionar e sobrevive a recarregar a página. **A URL é a fonte de verdade do filtro** — não há estado duplicado em componente.
 

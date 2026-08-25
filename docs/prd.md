@@ -127,16 +127,16 @@ Prioridade: **P0** obrigatório na fase · **P1** importante · **P2** desejáve
 
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
-| RF-CAT-01 | Listar produtos ativos em grade paginada, 12 por página | Todos | P0 | F1 |
+| RF-CAT-01 | Listar produtos ativos em grade paginada, 10 por página | Todos | P0 | F1 |
 | RF-CAT-02 | Exibir nome, imagem, preço, unidade e disponibilidade em cada cartão | Todos | P0 | F1 |
 | RF-CAT-03 | Filtrar a listagem por categoria | Todos | P0 | F1 |
 | RF-CAT-04 | Navegar entre páginas preservando o filtro ativo | Todos | P0 | F1 |
 | RF-CAT-05 | Carregar as categorias da API, nunca codificadas no front | Todos | P0 | F1 |
-| RF-CAT-06 | Refletir filtro, busca, ordenação e página na query string | Todos | P0 | F1 |
+| RF-CAT-06 | Refletir filtro, busca e página na query string | Todos | P0 | F1 |
 | RF-CAT-07 | Abrir a página do produto com descrição completa | Todos | P0 | F1 |
 | RF-CAT-08 | Marcar produto com estoque zero como indisponível, sem botão de compra | Todos | P0 | F1 |
 | RF-CAT-09 | Buscar produto por nome | Todos | P1 | F1 |
-| RF-CAT-10 | Ordenar por relevância, preço ou nome | Todos | P2 | F1 |
+| RF-CAT-10 | Apresentar o catálogo em ordem fixa — disponíveis primeiro, depois por categoria e nome —, sem seletor de ordenação | Todos | P0 | F1 |
 
 ### 4.2 Autenticação e cadastro
 
@@ -288,7 +288,7 @@ e mantê-la isolada deixa a porta aberta caso a decisão mude.
 
 ## 6. Fases do projeto
 
-Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rodam com dados mockados; a 6 troca a fonte.
+Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rodaram com dados mockados; a 6 trocou a fonte e removeu o mock.
 
 ### F0 — Fundação
 **Entrega**: Vite, React e TypeScript `strict`; Tailwind com os tokens de `docs/design.md`; shadcn/ui; ESLint e Prettier; alias `@/`; estrutura de pastas; cliente HTTP encapsulado; React Router com layout base (header, footer, mascote); páginas 404 e 403.
@@ -296,7 +296,7 @@ Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rod
 
 ### F1 — Catálogo público (mock)
 **Cobre**: RF-CAT-01 a RF-CAT-10.
-**Entrega**: MSW configurado com as fixtures de `docs/models.md`; listagem em grade; filtro por categoria vindo da API; busca; ordenação; paginação; estado indisponível; página do produto; skeleton, estado vazio e estado de erro com nova tentativa.
+**Entrega**: MSW configurado com as fixtures de `docs/models.md`; listagem em grade; filtro por categoria vindo da API; busca por nome; paginação; estado indisponível; página do produto; skeleton, estado vazio e estado de erro com nova tentativa.
 **Pronto quando**: filtro, busca e página sobrevivem a recarregar a URL; produto com estoque zero não oferece compra; a lista de categorias não está codificada em nenhum lugar do front.
 
 ### F2 — Autenticação e RBAC (mock)
@@ -334,7 +334,7 @@ A revalidação de preço e de estoque contra a API é da F4 (RF-CHK-08), no che
 O endpoint administrativo de produto busca por **id**, não por slug: a listagem trabalha com a chave estável, que não muda quando o nome do produto é editado. O catálogo público continua indexando por slug, que é o que aparece na URL.
 
 ### F6 — Integração com o backend (dados reais)
-**Entrega**: `VITE_API_MODE=http`; `VITE_API_BASE_URL` apontando para a API Spring; renovação de token; tratamento dos erros reais; ajuste de contrato se algo divergir.
+**Entrega**: mock removido do projeto; `VITE_API_BASE_URL` apontando para a API Spring; renovação de token; tratamento dos erros reais; ajuste de contrato se algo divergir.
 **Pronto quando**: a aplicação funciona ponta a ponta contra o backend **sem alteração em componente, hook ou chave de query**. Se algum componente precisar mudar, a estratégia de mock falhou e o desvio precisa ser documentado.
 
 ### F7 — Hardening
@@ -345,7 +345,17 @@ O endpoint administrativo de produto busca por **id**, não por slug: a listagem
 
 ## 7. Estratégia de dados: do mock à API real
 
-O requisito de arquitetura mais importante do projeto.
+> **A estratégia terminou, e o mock foi removido.** O MSW não está mais no
+> projeto: `Front/src/mocks/`, o worker e a dependência `msw` foram apagados, e
+> não existe mais `VITE_API_MODE`. O front fala com a API de verdade, sempre.
+>
+> O que a API ainda não expõe — carrinho, checkout, pedidos e o painel do admin
+> — deixou de funcionar, de propósito: a alternativa era manter essas telas
+> respondendo a um servidor imaginário e descobrir a diferença só na integração.
+>
+> Esta seção fica como registro da decisão e do que ela entregou. O veredito
+> está em 7.2: o código de aplicação não mudou ao trocar de fonte — mudou o
+> serviço, que é o único lugar que conhece as rotas.
 
 ### 7.1 Princípio
 
@@ -353,7 +363,9 @@ O requisito de arquitetura mais importante do projeto.
 
 ### 7.2 Interceptação em camada de rede, não troca de implementação
 
-O mock intercepta **abaixo** do cliente HTTP, com MSW. O código de aplicação usa o cliente real desde a F1 e nunca sabe que existe mock. Migrar para a API real é desligar o worker.
+O mock interceptava **abaixo** do cliente HTTP, com MSW. O código de aplicação usou o cliente real desde a F1 e nunca soube que existia mock. Migrar para a API real foi desligar o worker — e apagá-lo.
+
+Funcionou: nenhum componente, hook ou chave de query mudou na troca. O que mudou foi `catalogo-servico.ts`, que passou a escolher entre `/produtos` e `/catalogo/busca` — exatamente a camada que existe para conhecer rotas.
 
 ```
 componente -> hook (TanStack Query) -> servico -> cliente HTTP -> [MSW]  -> fixtures     (F1 a F5)
@@ -373,8 +385,7 @@ Adicionar `msw` foge da stack obrigatória, então precisa de razão explícita:
 
 | Variável | Valores | Efeito |
 |---|---|---|
-| `VITE_API_MODE` | `mock` ou `http` | Liga ou desliga o worker do MSW |
-| `VITE_API_BASE_URL` | URL | Base do cliente HTTP |
+| `VITE_API_BASE_URL` | URL | Base do cliente HTTP. `/api`, mesma origem |
 
 ### 7.5 Nenhuma outra biblioteca
 

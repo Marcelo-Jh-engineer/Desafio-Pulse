@@ -9,13 +9,12 @@ import type { ParametrosCatalogo } from '@/types/api-parametros';
  */
 
 /**
- * Converte os parametros do catalogo em query string, omitindo o que esta
- * vazio para a URL nao encher de `&busca=`.
+ * Paginacao e filtro de categoria, comuns as duas rotas. O que esta vazio fica
+ * de fora, para a URL nao encher de `&categoria=`.
  */
 function montarConsulta(parametros: ParametrosCatalogo): Record<string, string> {
   const consulta: Record<string, string> = {};
   if (parametros.categoria) consulta.categoria = parametros.categoria;
-  if (parametros.busca?.trim()) consulta.busca = parametros.busca.trim();
   if (parametros.pagina !== undefined) consulta.pagina = String(parametros.pagina);
   if (parametros.tamanho !== undefined) consulta.tamanho = String(parametros.tamanho);
   return consulta;
@@ -26,8 +25,27 @@ export function buscarCategorias(): Promise<Categoria[]> {
   return clienteHttp.obter<Categoria[]>('/categorias');
 }
 
-/** RF-CAT-01 a RF-CAT-04, RF-CAT-09, RF-CAT-10. */
+/**
+ * O catalogo — RF-CAT-01 a RF-CAT-04 e RF-CAT-09.
+ *
+ * Duas rotas, uma funcao. A API separa listar de procurar: `/produtos` lista e
+ * nao conhece `busca`; `/catalogo/busca` procura por `nome` e aceita o mesmo
+ * filtro de categoria. Mandar `busca` para a listagem nao da erro — o servidor
+ * descarta parametro que nao conhece — e devolve o catalogo inteiro como se
+ * ninguem tivesse procurado nada. Escolher a rota aqui e o que impede isso.
+ *
+ * A tela nao sabe da diferenca: continua chamando `buscarProdutos` com os
+ * mesmos parametros.
+ */
 export function buscarProdutos(parametros: ParametrosCatalogo): Promise<Pagina<Produto>> {
+  const termo = parametros.busca?.trim();
+
+  if (termo) {
+    return clienteHttp.obter<Pagina<Produto>>('/catalogo/busca', {
+      params: { ...montarConsulta(parametros), nome: termo },
+    });
+  }
+
   return clienteHttp.obter<Pagina<Produto>>('/produtos', {
     params: montarConsulta(parametros),
   });

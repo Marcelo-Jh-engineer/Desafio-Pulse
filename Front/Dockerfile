@@ -16,16 +16,13 @@ RUN npm ci
 
 COPY . .
 
-# O modo entra como ARG porque o Vite resolve `import.meta.env` em tempo de
-# BUILD: trocar isso depois exigiria reconstruir a imagem, nao reiniciar o
-# container. Variavel ja presente no ambiente vence os arquivos .env, entao o
-# ENV abaixo e o que manda — e nao o VITE_API_MODE=http de .env.production.
+# Entra como ARG porque o Vite resolve `import.meta.env` em tempo de BUILD:
+# trocar isso depois exigiria reconstruir a imagem, nao reiniciar o container.
+# Variavel ja presente no ambiente vence os arquivos .env, entao o ENV abaixo e
+# o que manda.
 #
-# `mock` de proposito: catalogo, carrinho e pedidos ainda nao tem backend, e o
-# MSW deixa `/api/autenticacao/*` e `/api/me` passarem direto para a API real.
-ARG VITE_API_MODE=mock
+# `/api` na mesma origem: o nginx desta imagem faz proxy para a API.
 ARG VITE_API_BASE_URL=/api
-ENV VITE_API_MODE=$VITE_API_MODE
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # `npm run build` roda a verificacao de tipos antes do bundle: erro de tipo
