@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos.keycloak;
+package com.api.ecommerce.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Resposta do endpoint de token do Keycloak. Formato **dele**, em snake_case, e
  * por isso vive num pacote separado: nada aqui e contrato com o front.
  *
- * O que sai daqui e traduzido para RespostaAutenticacaoDto antes de virar
+ * O que sai daqui e traduzido para AutenticacaoDtoOut antes de virar
  * resposta HTTP.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

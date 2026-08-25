@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,18 +20,18 @@ import java.util.Map;
  */
 @Schema(name = "Erro", description = "Formato padrao de erro da API")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ErroDto(
+public record ErroDtoOut(
         @Schema(example = "409") int status,
         @Schema(example = "Nao foi possivel concluir a operacao.") String mensagem,
         @Schema(example = "{\"email\": \"Este e-mail ja esta cadastrado.\"}")
         Map<String, String> errosPorCampo,
         Instant timestamp) {
 
-    public static ErroDto de(int status, String mensagem) {
-        return new ErroDto(status, mensagem, null, Instant.now());
+    public static ErroDtoOut de(int status, String mensagem) {
+        return new ErroDtoOut(status, mensagem, null, Instant.now());
     }
 
-    public static ErroDto de(int status, String mensagem, Map<String, String> errosPorCampo) {
-        return new ErroDto(status, mensagem, errosPorCampo, Instant.now());
+    public static ErroDtoOut de(int status, String mensagem, Map<String, String> errosPorCampo) {
+        return new ErroDtoOut(status, mensagem, errosPorCampo, Instant.now());
     }
 }

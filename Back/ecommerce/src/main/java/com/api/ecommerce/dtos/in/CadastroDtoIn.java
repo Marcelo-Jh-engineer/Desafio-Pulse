@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.in;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -13,7 +13,7 @@ import jakarta.validation.constraints.Size;
  * e mesmo quando e e-mail nao precisa ser o mesmo endereco de contato.
  */
 @Schema(name = "RequisicaoCadastro")
-public record RequisicaoCadastroDto(
+public record CadastroDtoIn(
         @NotBlank @Schema(description = "CPF, CNPJ (so digitos) ou e-mail", example = "11144477735")
         String login,
         @NotBlank @Email String email,

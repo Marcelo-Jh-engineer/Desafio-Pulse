@@ -1,6 +1,6 @@
 package com.api.ecommerce.controllers;
 
-import com.api.ecommerce.dtos.ErroDto;
+import com.api.ecommerce.dtos.out.ErroDtoOut;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeEstoqueInsuficiente;
@@ -22,7 +22,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Ponto unico de traducao de excecao para resposta. TODA excecao sai como
- * ErroDto — nunca stack trace, nome de classe ou mensagem interna.
+ * ErroDtoOut — nunca stack trace, nome de classe ou mensagem interna.
  */
 @RestControllerAdvice
 public class ExceptionMapper {
@@ -31,26 +31,26 @@ public class ExceptionMapper {
 
     /** Erro de formulario: chave = nome exato do campo, para o setError do front. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErroDto> validacao(MethodArgumentNotValidException excecao) {
+    public ResponseEntity<ErroDtoOut> validacao(MethodArgumentNotValidException excecao) {
         Map<String, String> errosPorCampo = new HashMap<>();
         for (FieldError erro : excecao.getBindingResult().getFieldErrors()) {
             errosPorCampo.putIfAbsent(erro.getField(), erro.getDefaultMessage());
         }
         return ResponseEntity.badRequest()
-                .body(ErroDto.de(400, "Confira os campos destacados.", errosPorCampo));
+                .body(ErroDtoOut.de(400, "Confira os campos destacados.", errosPorCampo));
     }
 
     /** 401 e 403 sao coisas diferentes: sem sessao leva ao login, sem papel vai para /403. */
     @ExceptionHandler(ExcecaoDeAutenticacao.class)
-    public ResponseEntity<ErroDto> semSessao(ExcecaoDeAutenticacao excecao) {
+    public ResponseEntity<ErroDtoOut> semSessao(ExcecaoDeAutenticacao excecao) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErroDto.de(401, excecao.getMessage()));
+                .body(ErroDtoOut.de(401, excecao.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErroDto> semPermissao(AccessDeniedException excecao) {
+    public ResponseEntity<ErroDtoOut> semPermissao(AccessDeniedException excecao) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ErroDto.de(403, "Voce nao tem permissao para esta acao."));
+                .body(ErroDtoOut.de(403, "Voce nao tem permissao para esta acao."));
     }
 
     /**
@@ -62,16 +62,16 @@ public class ExceptionMapper {
      * destacar.
      */
     @ExceptionHandler(ExcecaoDeEstoqueInsuficiente.class)
-    public ResponseEntity<ErroDto> estoqueInsuficiente(ExcecaoDeEstoqueInsuficiente excecao) {
+    public ResponseEntity<ErroDtoOut> estoqueInsuficiente(ExcecaoDeEstoqueInsuficiente excecao) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ErroDto.de(409, excecao.getMessage(),
+                .body(ErroDtoOut.de(409, excecao.getMessage(),
                         Map.of("quantidade", String.valueOf(excecao.getDisponivel()))));
     }
 
     @ExceptionHandler(ExcecaoDeNaoEncontrado.class)
-    public ResponseEntity<ErroDto> naoEncontrado(ExcecaoDeNaoEncontrado excecao) {
+    public ResponseEntity<ErroDtoOut> naoEncontrado(ExcecaoDeNaoEncontrado excecao) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErroDto.de(404, excecao.getMessage()));
+                .body(ErroDtoOut.de(404, excecao.getMessage()));
     }
 
     /**
@@ -85,23 +85,23 @@ public class ExceptionMapper {
      * mostrar essa mensagem numa tela.
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErroDto> parametroInvalido(MethodArgumentTypeMismatchException excecao) {
+    public ResponseEntity<ErroDtoOut> parametroInvalido(MethodArgumentTypeMismatchException excecao) {
         return ResponseEntity.badRequest()
-                .body(ErroDto.de(400, "Valor invalido para o parametro '" + excecao.getName() + "'."));
+                .body(ErroDtoOut.de(400, "Valor invalido para o parametro '" + excecao.getName() + "'."));
     }
 
     @ExceptionHandler(ExcecaoDeConflito.class)
-    public ResponseEntity<ErroDto> conflito(ExcecaoDeConflito excecao) {
+    public ResponseEntity<ErroDtoOut> conflito(ExcecaoDeConflito excecao) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ErroDto.de(409, excecao.getMessage(), excecao.getErrosPorCampo()));
+                .body(ErroDtoOut.de(409, excecao.getMessage(), excecao.getErrosPorCampo()));
     }
 
     @ExceptionHandler(ExcecaoDeIdentidade.class)
-    public ResponseEntity<ErroDto> identidadeIndisponivel(ExcecaoDeIdentidade excecao) {
+    public ResponseEntity<ErroDtoOut> identidadeIndisponivel(ExcecaoDeIdentidade excecao) {
         // O detalhe do provedor fica no log, nunca na resposta.
         LOG.error("Falha na conversa com o provedor de identidade", excecao);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(ErroDto.de(502, "Servico de identidade indisponivel. Tente novamente em instantes."));
+                .body(ErroDtoOut.de(502, "Servico de identidade indisponivel. Tente novamente em instantes."));
     }
 
     /**
@@ -112,15 +112,15 @@ public class ExceptionMapper {
      * varre a API le 500 como sinal de que achou algo.
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErroDto> rotaInexistente(NoResourceFoundException excecao) {
+    public ResponseEntity<ErroDtoOut> rotaInexistente(NoResourceFoundException excecao) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErroDto.de(404, "Recurso nao encontrado."));
+                .body(ErroDtoOut.de(404, "Recurso nao encontrado."));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErroDto> inesperada(Exception excecao) {
+    public ResponseEntity<ErroDtoOut> inesperada(Exception excecao) {
         LOG.error("Erro nao tratado", excecao);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErroDto.de(500, "Erro inesperado. Tente novamente."));
+                .body(ErroDtoOut.de(500, "Erro inesperado. Tente novamente."));
     }
 }

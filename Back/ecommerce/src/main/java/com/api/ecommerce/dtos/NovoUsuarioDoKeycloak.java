@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos.keycloak;
+package com.api.ecommerce.dtos;
 
 import java.util.List;
 

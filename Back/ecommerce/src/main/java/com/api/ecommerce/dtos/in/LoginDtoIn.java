@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.in;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -11,7 +11,7 @@ import jakarta.validation.constraints.NotBlank;
  * tanto username quanto e-mail no mesmo campo.
  */
 @Schema(name = "RequisicaoLogin")
-public record RequisicaoLoginDto(
+public record LoginDtoIn(
         @NotBlank @Schema(example = "11144477735") String identificador,
         @NotBlank String senha) {
 }

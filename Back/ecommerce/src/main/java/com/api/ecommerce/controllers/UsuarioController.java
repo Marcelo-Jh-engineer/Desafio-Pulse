@@ -1,8 +1,8 @@
 package com.api.ecommerce.controllers;
 
 import com.api.ecommerce.business.mapper.UsuarioMapper;
-import com.api.ecommerce.dtos.ErroDto;
-import com.api.ecommerce.dtos.UsuarioDto;
+import com.api.ecommerce.dtos.out.ErroDtoOut;
+import com.api.ecommerce.dtos.out.UsuarioDtoOut;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,8 +30,8 @@ public class UsuarioController {
     @Operation(summary = "Usuario do token")
     @ApiResponse(responseCode = "200", description = "Usuario autenticado")
     @ApiResponse(responseCode = "401", description = "Sem token ou token invalido",
-            content = @Content(schema = @Schema(implementation = ErroDto.class)))
-    public UsuarioDto eu(@AuthenticationPrincipal Jwt token) {
+            content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
+    public UsuarioDtoOut eu(@AuthenticationPrincipal Jwt token) {
         return usuarioMapper.paraDto(token);
     }
 }

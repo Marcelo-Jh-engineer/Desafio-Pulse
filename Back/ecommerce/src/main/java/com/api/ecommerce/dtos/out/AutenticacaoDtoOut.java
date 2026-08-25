@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -13,8 +13,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param expiraEmSegundos validade do access token, em segundos
  */
 @Schema(name = "RespostaAutenticacao")
-public record RespostaAutenticacaoDto(
+public record AutenticacaoDtoOut(
         String token,
         @Schema(example = "300") long expiraEmSegundos,
-        UsuarioDto usuario) {
+        UsuarioDtoOut usuario) {
 }

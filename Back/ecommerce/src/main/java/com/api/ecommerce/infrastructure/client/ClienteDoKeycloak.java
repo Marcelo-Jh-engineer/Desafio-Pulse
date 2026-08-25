@@ -1,8 +1,8 @@
 package com.api.ecommerce.infrastructure.client;
 
 import com.api.ecommerce.config.KeycloakConfig;
-import com.api.ecommerce.dtos.keycloak.NovoUsuarioDoKeycloak;
-import com.api.ecommerce.dtos.keycloak.RespostaDeTokenDoKeycloak;
+import com.api.ecommerce.dtos.NovoUsuarioDoKeycloak;
+import com.api.ecommerce.dtos.RespostaDeTokenDoKeycloak;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeIdentidade;

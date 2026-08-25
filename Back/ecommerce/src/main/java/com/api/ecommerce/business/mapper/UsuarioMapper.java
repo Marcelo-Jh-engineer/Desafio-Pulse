@@ -1,6 +1,6 @@
 package com.api.ecommerce.business.mapper;
 
-import com.api.ecommerce.dtos.UsuarioDto;
+import com.api.ecommerce.dtos.out.UsuarioDtoOut;
 import com.api.ecommerce.infrastructure.enums.Papel;
 import java.util.Collection;
 import java.util.List;
@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class UsuarioMapper {
 
-    public UsuarioDto paraDto(Jwt token) {
-        return new UsuarioDto(
+    public UsuarioDtoOut paraDto(Jwt token) {
+        return new UsuarioDtoOut(
                 token.getSubject(),
                 nomeDe(token),
                 token.getClaimAsString("email"),

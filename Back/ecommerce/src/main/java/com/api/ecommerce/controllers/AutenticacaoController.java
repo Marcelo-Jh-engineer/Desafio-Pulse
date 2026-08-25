@@ -2,11 +2,11 @@ package com.api.ecommerce.controllers;
 
 import com.api.ecommerce.business.service.ServicoDeAutenticacao;
 import com.api.ecommerce.config.CookieDeSessao;
-import com.api.ecommerce.dtos.ErroDto;
-import com.api.ecommerce.dtos.RequisicaoCadastroDto;
-import com.api.ecommerce.dtos.RequisicaoLoginDto;
-import com.api.ecommerce.dtos.RespostaAutenticacaoDto;
+import com.api.ecommerce.dtos.in.CadastroDtoIn;
+import com.api.ecommerce.dtos.in.LoginDtoIn;
 import com.api.ecommerce.dtos.SessaoCriadaDto;
+import com.api.ecommerce.dtos.out.ErroDtoOut;
+import com.api.ecommerce.dtos.out.AutenticacaoDtoOut;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -53,8 +53,8 @@ public class AutenticacaoController {
     @Operation(summary = "Autentica, devolve o access token e grava o cookie de sessao")
     @ApiResponse(responseCode = "200", description = "Sessao criada")
     @ApiResponse(responseCode = "401", description = "Login ou senha incorretos",
-            content = @Content(schema = @Schema(implementation = ErroDto.class)))
-    public ResponseEntity<RespostaAutenticacaoDto> login(@Valid @RequestBody RequisicaoLoginDto pedido) {
+            content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
+    public ResponseEntity<AutenticacaoDtoOut> login(@Valid @RequestBody LoginDtoIn pedido) {
         return comCookie(servico.entrar(pedido), HttpStatus.OK);
     }
 
@@ -62,8 +62,8 @@ public class AutenticacaoController {
     @Operation(summary = "Cria a conta e ja devolve a sessao")
     @ApiResponse(responseCode = "201", description = "Conta criada e sessao iniciada")
     @ApiResponse(responseCode = "409", description = "Login ou e-mail ja em uso",
-            content = @Content(schema = @Schema(implementation = ErroDto.class)))
-    public ResponseEntity<RespostaAutenticacaoDto> cadastro(@Valid @RequestBody RequisicaoCadastroDto pedido) {
+            content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
+    public ResponseEntity<AutenticacaoDtoOut> cadastro(@Valid @RequestBody CadastroDtoIn pedido) {
         return comCookie(servico.cadastrar(pedido), HttpStatus.CREATED);
     }
 
@@ -78,8 +78,8 @@ public class AutenticacaoController {
     @Operation(summary = "Troca o cookie de sessao por um access token novo")
     @ApiResponse(responseCode = "200", description = "Sessao renovada")
     @ApiResponse(responseCode = "401", description = "Cookie ausente, expirado ou revogado",
-            content = @Content(schema = @Schema(implementation = ErroDto.class)))
-    public ResponseEntity<RespostaAutenticacaoDto> renovar(
+            content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
+    public ResponseEntity<AutenticacaoDtoOut> renovar(
             @CookieValue(name = CookieDeSessao.NOME, required = false) String refreshToken) {
         // Sem cookie nao ha sessao a renovar. 401 e a resposta honesta, e e o que
         // o front interpreta como "siga como visitante".
@@ -109,7 +109,7 @@ public class AutenticacaoController {
     }
 
     /** O corpo leva o access token; o cookie, o refresh. Nunca o contrario. */
-    private ResponseEntity<RespostaAutenticacaoDto> comCookie(SessaoCriadaDto sessao, HttpStatus status) {
+    private ResponseEntity<AutenticacaoDtoOut> comCookie(SessaoCriadaDto sessao, HttpStatus status) {
         ResponseCookie cookieResponse = cookie.criar(sessao.refreshToken(), sessao.refreshExpiraEmSegundos());
         return ResponseEntity.status(status)
                 .header(HttpHeaders.SET_COOKIE, cookieResponse.toString())

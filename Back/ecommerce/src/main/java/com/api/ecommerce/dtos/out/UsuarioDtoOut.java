@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import com.api.ecommerce.infrastructure.enums.Papel;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +11,7 @@ import java.util.List;
  * front recebe `CLIENTE` e `ADMIN` e nao sabe de onde saiu.
  */
 @Schema(name = "Usuario")
-public record UsuarioDto(
+public record UsuarioDtoOut(
         @Schema(example = "8c84cae8-ca95-4250-a38b-6d9d3733e817") String id,
         @Schema(example = "Maria Souza") String nome,
         @Schema(example = "maria@exemplo.com") String email,

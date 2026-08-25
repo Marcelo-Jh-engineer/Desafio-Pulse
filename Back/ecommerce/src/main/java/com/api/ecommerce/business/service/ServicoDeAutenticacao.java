@@ -1,12 +1,12 @@
 package com.api.ecommerce.business.service;
 
 import com.api.ecommerce.business.mapper.UsuarioMapper;
-import com.api.ecommerce.dtos.RequisicaoCadastroDto;
-import com.api.ecommerce.dtos.RequisicaoLoginDto;
-import com.api.ecommerce.dtos.RespostaAutenticacaoDto;
+import com.api.ecommerce.dtos.in.CadastroDtoIn;
+import com.api.ecommerce.dtos.in.LoginDtoIn;
 import com.api.ecommerce.dtos.SessaoCriadaDto;
-import com.api.ecommerce.dtos.keycloak.NovoUsuarioDoKeycloak;
-import com.api.ecommerce.dtos.keycloak.RespostaDeTokenDoKeycloak;
+import com.api.ecommerce.dtos.NovoUsuarioDoKeycloak;
+import com.api.ecommerce.dtos.RespostaDeTokenDoKeycloak;
+import com.api.ecommerce.dtos.out.AutenticacaoDtoOut;
 import com.api.ecommerce.infrastructure.client.ClienteDoKeycloak;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeIdentidade;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -36,7 +36,7 @@ public class ServicoDeAutenticacao {
         this.decodificador = decodificador;
     }
 
-    public SessaoCriadaDto entrar(RequisicaoLoginDto pedido) {
+    public SessaoCriadaDto entrar(LoginDtoIn pedido) {
         return traduzir(keycloak.autenticar(pedido.identificador(), pedido.senha()));
     }
 
@@ -47,7 +47,7 @@ public class ServicoDeAutenticacao {
      * O papel CLIENTE nao e concedido aqui — ele vem de `default-roles-ecommerce`
      * no realm, entao todo usuario novo ja nasce com ele.
      */
-    public SessaoCriadaDto cadastrar(RequisicaoCadastroDto pedido) {
+    public SessaoCriadaDto cadastrar(CadastroDtoIn pedido) {
         keycloak.criarUsuario(NovoUsuarioDoKeycloak.de(
                 pedido.login(),
                 pedido.email(),
@@ -84,7 +84,7 @@ public class ServicoDeAutenticacao {
             throw new ExcecaoDeIdentidade("Token recebido do provedor nao passou na validacao", excecao);
         }
 
-        RespostaAutenticacaoDto corpo = new RespostaAutenticacaoDto(
+        AutenticacaoDtoOut corpo = new AutenticacaoDtoOut(
                 token.accessToken(),
                 token.expiraEm(),
                 usuarioMapper.paraDto(acesso));

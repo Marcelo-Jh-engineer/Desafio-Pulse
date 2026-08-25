@@ -1,5 +1,7 @@
 package com.api.ecommerce.dtos;
 
+import com.api.ecommerce.dtos.out.AutenticacaoDtoOut;
+
 /**
  * Uso interno, entre servico e controller — nunca vira JSON.
  *
@@ -13,7 +15,7 @@ package com.api.ecommerce.dtos;
  * @param refreshExpiraEmSegundos  Max-Age do cookie
  */
 public record SessaoCriadaDto(
-        RespostaAutenticacaoDto corpo,
+        AutenticacaoDtoOut corpo,
         String refreshToken,
         long refreshExpiraEmSegundos) {
 }
