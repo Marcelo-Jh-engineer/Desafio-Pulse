@@ -11,12 +11,6 @@ import type { Carrinho, ItemCarrinho } from '@/types/carrinho';
  * nao da `0.3`, e o erro aparece no total do cliente.
  */
 
-/** Frete fixo da fase mockada. */
-export const FRETE_EM_CENTAVOS = 990;
-
-/** Acima disso o frete zera. */
-export const FRETE_GRATIS_ACIMA_DE = 15_000;
-
 /** Teto por linha, independente do estoque. */
 export const QUANTIDADE_MAXIMA = 20;
 
@@ -52,23 +46,11 @@ export function recalcularLinha(item: ItemCarrinho): ItemCarrinho {
 export function calcularCarrinho(itens: ItemCarrinho[]): Carrinho {
   const linhas = itens.map(recalcularLinha);
 
-  const subtotalEmCentavos = linhas.reduce((total, item) => total + item.totalLinhaEmCentavos, 0);
   const quantidadeItens = linhas.reduce((total, item) => total + item.quantidade, 0);
-
-  // Carrinho vazio nao cobra frete: nao ha o que entregar.
-  const freteEmCentavos =
-    linhas.length === 0 || subtotalEmCentavos >= FRETE_GRATIS_ACIMA_DE ? 0 : FRETE_EM_CENTAVOS;
 
   return {
     itens: linhas,
-    subtotalEmCentavos,
-    freteEmCentavos,
-    totalEmCentavos: subtotalEmCentavos + freteEmCentavos,
+    totalEmCentavos: linhas.reduce((total, item) => total + item.totalLinhaEmCentavos, 0),
     quantidadeItens,
   };
-}
-
-/** Quanto falta para o frete sair de graca. Zero quando ja saiu. */
-export function faltaParaFreteGratis(subtotalEmCentavos: number): number {
-  return Math.max(0, FRETE_GRATIS_ACIMA_DE - subtotalEmCentavos);
 }

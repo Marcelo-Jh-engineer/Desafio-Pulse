@@ -18,11 +18,10 @@ function exibirLogin(login: string): string {
 }
 
 /**
- * Itens congelados, totais, endereço e comprador.
+ * Itens congelados, total e comprador. O pedido nao guarda endereco de
+ * entrega, entao nao ha o que exibir sobre destino.
  */
 export function DetalhesDoPedido({ pedido }: { pedido: Pedido }) {
-  const entrega = pedido.endereco;
-
   return (
     <div className="space-y-6">
       <section aria-labelledby="titulo-itens" className="space-y-3">
@@ -43,43 +42,13 @@ export function DetalhesDoPedido({ pedido }: { pedido: Pedido }) {
         <Separator />
 
         <dl className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Subtotal</dt>
-            <dd>
-              <Preco centavos={pedido.subtotalEmCentavos} className="text-sm" />
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Frete</dt>
-            <dd>
-              {pedido.freteEmCentavos === 0 ? (
-                <span className="font-medium text-sucesso">Grátis</span>
-              ) : (
-                <Preco centavos={pedido.freteEmCentavos} className="text-sm" />
-              )}
-            </dd>
-          </div>
-          <div className="flex items-baseline justify-between pt-2">
+          <div className="flex items-baseline justify-between">
             <dt className="font-semibold">Total</dt>
             <dd>
               <Preco centavos={pedido.totalEmCentavos} className="text-xl" />
             </dd>
           </div>
         </dl>
-      </section>
-
-      <section aria-labelledby="titulo-entrega" className="space-y-2">
-        <h2 id="titulo-entrega" className="text-xl font-semibold">
-          Entrega
-        </h2>
-        <address className="text-sm not-italic text-muted-foreground">
-          {entrega.logradouro}, {entrega.numero}
-          {entrega.complemento ? ` — ${entrega.complemento}` : ''}
-          <br />
-          {entrega.bairro} · {entrega.cidade}/{entrega.uf}
-          <br />
-          CEP {entrega.cep.replace(/^(\d{5})(\d{3})$/, '$1-$2')}
-        </address>
       </section>
 
       <section aria-labelledby="titulo-comprador" className="space-y-2">

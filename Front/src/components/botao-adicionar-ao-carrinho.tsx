@@ -54,7 +54,7 @@ export function BotaoAdicionarAoCarrinho({
       // Guarda a linha inteira: depois do login o item entra sem precisar
       // buscar o produto de novo.
       guardarIntencao(produto, quantidade);
-      void navegar(urlDeLoginCom(destinoDeRetorno ?? `/produtos/${produto.slug}`));
+      void navegar(urlDeLoginCom(destinoDeRetorno ?? `/produtos/${produto.id}`));
       return;
     }
 

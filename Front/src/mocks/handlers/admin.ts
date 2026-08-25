@@ -42,17 +42,6 @@ function adminDaRequisicao(request: Request) {
   return conteudo;
 }
 
-/** Slug gerado pelo backend, sem acento, minusculo, com hifen. */
-function gerarSlug(nome: string): string {
-  return nome
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 function lerInteiro(valor: string | null, padrao: number): number {
   const numero = Number.parseInt(valor ?? '', 10);
   return Number.isFinite(numero) ? numero : padrao;
@@ -68,21 +57,18 @@ export const handlersAdmin = [
 
     const parametros = new URL(request.url).searchParams;
     const busca = (parametros.get('busca') ?? '').toLowerCase().trim();
-    const slugCategoria = parametros.get('categoria');
+    const idCategoria = parametros.get('categoria');
     const situacao = parametros.get('situacao');
 
     let resultado = [...produtos];
 
-    if (slugCategoria) {
-      resultado = resultado.filter((produto) => produto.categoria.slug === slugCategoria);
+    if (idCategoria) {
+      resultado = resultado.filter((produto) => produto.categoria.id === idCategoria);
     }
     if (situacao === 'ATIVO') resultado = resultado.filter((produto) => produto.ativo);
     if (situacao === 'INATIVO') resultado = resultado.filter((produto) => !produto.ativo);
     if (busca) {
-      resultado = resultado.filter(
-        (produto) =>
-          produto.nome.toLowerCase().includes(busca) || produto.sku.toLowerCase().includes(busca),
-      );
+      resultado = resultado.filter((produto) => produto.nome.toLowerCase().includes(busca));
     }
     if (parametros.get('ordenacao') === 'ESTOQUE_ASC') {
       resultado.sort((a, b) => a.quantidadeEstoque - b.quantidadeEstoque);
@@ -137,18 +123,14 @@ export const handlersAdmin = [
         categoriaId: 'Escolha uma categoria.',
       });
     }
-    if (produtos.some((produto) => produto.sku.toLowerCase() === dados.sku.toLowerCase())) {
+    if (produtos.some((produto) => produto.nome.toLowerCase() === dados.nome.toLowerCase())) {
       return erro(409, 'Não foi possível salvar o produto.', {
-        sku: 'Já existe um produto com este SKU.',
+        nome: 'Já existe um produto com este nome.',
       });
     }
 
-    const agora = new Date().toISOString();
     const novo: Produto = {
       id: `p-${String(produtos.length + 1).padStart(4, '0')}`,
-      sku: dados.sku,
-      // Slug gerado pelo backend a partir do nome, nunca enviado pelo front.
-      slug: gerarSlug(dados.nome),
       nome: dados.nome,
       descricao: dados.descricao,
       precoEmCentavos: dados.precoEmCentavos,
@@ -157,8 +139,6 @@ export const handlersAdmin = [
       categoria,
       quantidadeEstoque: dados.quantidadeEstoque,
       ativo: dados.ativo,
-      criadoEm: agora,
-      atualizadoEm: agora,
     };
 
     produtos.push(novo);
@@ -190,7 +170,6 @@ export const handlersAdmin = [
     }
 
     produto.precoEmCentavos = dados.precoEmCentavos ?? produto.precoEmCentavos;
-    produto.atualizadoEm = new Date().toISOString();
 
     return HttpResponse.json(produto);
   }),
@@ -220,9 +199,11 @@ export const handlersAdmin = [
     }
 
     const dados = (await request.json()) as RequisicaoCategoria;
-    const slug = gerarSlug(dados.nome);
+    const nome = dados.nome.trim();
 
-    if (categorias.some((categoria) => categoria.slug === slug)) {
+    // O nome e o identificador natural agora: sem slug, e ele que nao pode
+    // repetir, e e a unicidade que o banco tambem impoe.
+    if (categorias.some((categoria) => categoria.nome.toLowerCase() === nome.toLowerCase())) {
       return erro(409, 'Não foi possível salvar a categoria.', {
         nome: 'Já existe uma categoria com este nome.',
       });
@@ -230,8 +211,7 @@ export const handlersAdmin = [
 
     const nova: Categoria = {
       id: `cat-${String(categorias.length + 1).padStart(4, '0')}`,
-      nome: dados.nome.trim(),
-      slug,
+      nome,
       ...(dados.descricao ? { descricao: dados.descricao } : {}),
       ordem: dados.ordem,
       ativa: dados.ativa,
@@ -257,7 +237,6 @@ export const handlersAdmin = [
     const dados = (await request.json()) as Partial<RequisicaoCategoria>;
     if (typeof dados.nome === 'string' && dados.nome.trim().length >= 2) {
       categoria.nome = dados.nome.trim();
-      categoria.slug = gerarSlug(dados.nome);
     }
     if (typeof dados.ativa === 'boolean') categoria.ativa = dados.ativa;
 

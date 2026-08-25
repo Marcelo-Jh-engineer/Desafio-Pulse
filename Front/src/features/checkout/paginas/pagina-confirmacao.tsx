@@ -66,7 +66,7 @@ export function PaginaConfirmacao() {
           <TituloDaPagina tituloDocumento="Pedido confirmado">Pedido confirmado</TituloDaPagina>
           <p className="text-muted-foreground">Obrigado! Já estamos separando os seus itens.</p>
           <p className="rounded-md bg-accent px-4 py-2 text-lg font-bold text-accent-foreground">
-            {pedido.data.numero}
+            {pedido.data.id}
           </p>
         </CardContent>
       </Card>
@@ -95,7 +95,7 @@ export function PaginaConfirmacao() {
           <div className="hidden border-b border-border pb-4 print:block">
             <p className="text-lg font-bold">Você no Coração da Gente</p>
             <p className="text-sm text-muted-foreground">
-              Comprovante do pedido {pedido.data.numero}
+              Comprovante do pedido {pedido.data.id}
             </p>
           </div>
 

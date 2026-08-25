@@ -33,7 +33,6 @@ interface CobrancaEmAberto {
 
 const pedidos: Pedido[] = [];
 const cobrancasPix = new Map<string, CobrancaEmAberto>();
-let proximoNumero = 123;
 
 /** Prazo do Pix — docs/behavior.md secao 9. */
 export const VALIDADE_PIX_EM_SEGUNDOS = 5 * 60;
@@ -54,11 +53,6 @@ function usuarioDaRequisicao(request: Request) {
   if (!token) return undefined;
 
   return lerToken(token);
-}
-
-function gerarNumero(): string {
-  proximoNumero += 1;
-  return `PED-2026-${String(proximoNumero).padStart(6, '0')}`;
 }
 
 /**
@@ -152,7 +146,7 @@ export const handlersPedidos = [
       });
     }
 
-    // Reaproveita a mesma regra de frete do carrinho: um lugar so decide.
+    // Reaproveita a mesma conta do carrinho: um lugar so decide valor.
     const totais = calcularCarrinho(
       itens.map((item) => ({
         produtoId: item.produtoId,
@@ -169,13 +163,9 @@ export const handlersPedidos = [
 
     const novo: Pedido = {
       id: `ped-${String(pedidos.length + 1).padStart(4, '0')}`,
-      numero: gerarNumero(),
       status: 'PENDENTE',
       itens,
-      subtotalEmCentavos: totais.subtotalEmCentavos,
-      freteEmCentavos: totais.freteEmCentavos,
       totalEmCentavos: totais.totalEmCentavos,
-      endereco: corpo.endereco,
       nomeComprador: comprador.nome,
       emailComprador: comprador.email,
       loginComprador: comprador.login,

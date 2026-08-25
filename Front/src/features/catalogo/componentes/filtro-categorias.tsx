@@ -40,7 +40,7 @@ export function FiltroCategorias({
 
   const opcoes: { valor: string | undefined; rotulo: string }[] = [
     { valor: undefined, rotulo: 'Todas' },
-    ...categorias.map((categoria) => ({ valor: categoria.slug, rotulo: categoria.nome })),
+    ...categorias.map((categoria) => ({ valor: categoria.id, rotulo: categoria.nome })),
   ];
 
   return (

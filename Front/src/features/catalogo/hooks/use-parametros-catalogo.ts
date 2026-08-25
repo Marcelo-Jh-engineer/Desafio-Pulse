@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { OrdenacaoCatalogo, ParametrosCatalogo } from '@/types/api-parametros';
+import type { ParametrosCatalogo } from '@/types/api-parametros';
 
 /**
  * A query string e a **fonte de verdade** do filtro — RF-CAT-06. Nao existe
@@ -8,10 +8,11 @@ import type { OrdenacaoCatalogo, ParametrosCatalogo } from '@/types/api-parametr
  * botao voltar funciona e recarregar a pagina preserva tudo.
  *
  * Valor padrao nao vai para a URL. A primeira pagina do catalogo sem filtro e
- * `/`, nao `/?pagina=0&ordenacao=RELEVANCIA`.
+ * `/`, nao `/?pagina=0`.
  */
 
-export const TAMANHO_PAGINA = 12;
+/** Igual ao padrao do backend (ServicoDeCatalogo.TAMANHO_PADRAO). */
+export const TAMANHO_PAGINA = 10;
 
 /**
  * `Partial` nao serve aqui: com `exactOptionalPropertyTypes` ele recusa
@@ -20,25 +21,6 @@ export const TAMANHO_PAGINA = 12;
 export type MudancasCatalogo = {
   [Chave in keyof ParametrosCatalogo]?: ParametrosCatalogo[Chave] | undefined;
 };
-
-const ORDENACOES: readonly OrdenacaoCatalogo[] = [
-  'RELEVANCIA',
-  'PRECO_ASC',
-  'PRECO_DESC',
-  'NOME_ASC',
-];
-
-export const ROTULO_ORDENACAO: Record<OrdenacaoCatalogo, string> = {
-  RELEVANCIA: 'Relevância',
-  PRECO_ASC: 'Menor preço',
-  PRECO_DESC: 'Maior preço',
-  NOME_ASC: 'Nome (A-Z)',
-};
-
-function lerOrdenacao(valor: string | null): OrdenacaoCatalogo {
-  const candidato = valor as OrdenacaoCatalogo | null;
-  return candidato && ORDENACOES.includes(candidato) ? candidato : 'RELEVANCIA';
-}
 
 /** Indice base 0, como no contrato. Valor invalido ou negativo cai na primeira. */
 function lerPagina(valor: string | null): number {
@@ -58,7 +40,6 @@ export function useParametrosCatalogo() {
     return {
       ...(categoria ? { categoria } : {}),
       ...(busca ? { busca } : {}),
-      ordenacao: lerOrdenacao(parametrosUrl.get('ordenacao')),
       pagina: lerPagina(parametrosUrl.get('pagina')),
       tamanho: TAMANHO_PAGINA,
     };
@@ -75,8 +56,7 @@ export function useParametrosCatalogo() {
               valor === undefined ||
               valor === null ||
               valor === '' ||
-              (chave === 'pagina' && valor === 0) ||
-              (chave === 'ordenacao' && valor === 'RELEVANCIA');
+              (chave === 'pagina' && valor === 0);
 
             if (vazio) {
               proximos.delete(chave);
@@ -95,7 +75,7 @@ export function useParametrosCatalogo() {
     [definirParametrosUrl],
   );
 
-  /** Filtrar, buscar e ordenar sempre voltam para a primeira pagina. */
+  /** Filtrar e buscar sempre voltam para a primeira pagina. */
   const filtrar = useCallback(
     (mudancas: MudancasCatalogo) => {
       atualizar({ ...mudancas, pagina: 0 });

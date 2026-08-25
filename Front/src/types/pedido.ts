@@ -1,19 +1,5 @@
 import type { StatusPagamento, StatusPedido, Unidade } from '@/types/dominio';
 
-/** Endereço de entrega — docs/models.md secao 8. */
-export interface Endereco {
-  /** So digitos, 8 caracteres. */
-  cep: string;
-  logradouro: string;
-  /** String de proposito: aceita "s/n". */
-  numero: string;
-  complemento?: string;
-  bairro: string;
-  cidade: string;
-  /** Duas letras maiusculas. */
-  uf: string;
-}
-
 /** Linha do pedido — congelada no momento da compra. */
 export interface ItemPedido {
   produtoId: string;
@@ -45,14 +31,9 @@ export interface ResumoPagamento {
  */
 export interface Pedido {
   id: string;
-  /** Legivel pelo cliente: "PED-2026-000123". */
-  numero: string;
   status: StatusPedido;
   itens: ItemPedido[];
-  subtotalEmCentavos: number;
-  freteEmCentavos: number;
   totalEmCentavos: number;
-  endereco: Endereco;
   nomeComprador: string;
   emailComprador: string;
   /** Snapshot do login do comprador. Exibido mascarado quando é documento. */
@@ -67,7 +48,6 @@ export interface Pedido {
 
 export interface RequisicaoPedido {
   itens: { produtoId: string; quantidade: number }[];
-  endereco: Endereco;
 }
 
 /**

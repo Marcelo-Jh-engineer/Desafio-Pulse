@@ -46,7 +46,6 @@ function montarItem(produto: Produto, quantidade: number): ItemCarrinho {
   const quantidadeFinal = limitarQuantidade(quantidade, produto.quantidadeEstoque);
   return {
     produtoId: produto.id,
-    slug: produto.slug,
     nome: produto.nome,
     precoEmCentavos: produto.precoEmCentavos,
     urlImagem: produto.urlImagem,

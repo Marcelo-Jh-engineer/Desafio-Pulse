@@ -16,7 +16,6 @@ function montarConsulta(parametros: ParametrosCatalogo): Record<string, string> 
   const consulta: Record<string, string> = {};
   if (parametros.categoria) consulta.categoria = parametros.categoria;
   if (parametros.busca?.trim()) consulta.busca = parametros.busca.trim();
-  if (parametros.ordenacao) consulta.ordenacao = parametros.ordenacao;
   if (parametros.pagina !== undefined) consulta.pagina = String(parametros.pagina);
   if (parametros.tamanho !== undefined) consulta.tamanho = String(parametros.tamanho);
   return consulta;
@@ -35,6 +34,6 @@ export function buscarProdutos(parametros: ParametrosCatalogo): Promise<Pagina<P
 }
 
 /** RF-CAT-07. */
-export function buscarProdutoPorSlug(slug: string): Promise<Produto> {
-  return clienteHttp.obter<Produto>(`/produtos/${encodeURIComponent(slug)}`);
+export function buscarProdutoPorId(id: string): Promise<Produto> {
+  return clienteHttp.obter<Produto>(`/produtos/${encodeURIComponent(id)}`);
 }

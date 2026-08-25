@@ -54,8 +54,8 @@ export function PaginaStatusPedido() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <TituloDaPagina tituloDocumento={`Pedido ${pedido.data.numero}`}>
-          Pedido {pedido.data.numero}
+        <TituloDaPagina tituloDocumento={`Pedido ${pedido.data.id}`}>
+          Pedido {pedido.data.id}
         </TituloDaPagina>
         <p className={`flex items-center gap-2 font-medium ${classe}`}>
           <Icone aria-hidden="true" className="size-5 shrink-0" />

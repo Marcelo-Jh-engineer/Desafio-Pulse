@@ -26,7 +26,6 @@ const UNIDADES = Object.keys(ROTULO_UNIDADE) as Unidade[];
 
 const esquema = z.object({
   nome: z.string().trim().min(3, 'O nome precisa ter ao menos 3 caracteres.').max(120),
-  sku: z.string().trim().min(3, 'O SKU precisa ter ao menos 3 caracteres.').max(40),
   descricao: z
     .string()
     .trim()
@@ -62,12 +61,11 @@ export function PaginaNovoProduto() {
     mode: 'onBlur',
     defaultValues: {
       nome: '',
-      sku: '',
       descricao: '',
       preco: '',
       unidade: 'UN',
       categoriaId: '',
-      urlImagem: '/produtos/banana-prata.svg',
+      urlImagem: '',
       quantidadeEstoque: 0,
       ativo: true,
     },
@@ -85,7 +83,6 @@ export function PaginaNovoProduto() {
   function aoEnviar(dados: FormularioProduto) {
     cadastrar.mutate(
       {
-        sku: dados.sku,
         nome: dados.nome,
         descricao: dados.descricao,
         precoEmCentavos: paraCentavos(dados.preco),
@@ -142,15 +139,6 @@ export function PaginaNovoProduto() {
           >
             <CampoFormulario id="nome" rotulo="Nome" erro={errors.nome?.message}>
               <Input id="nome" aria-invalid={Boolean(errors.nome)} {...register('nome')} />
-            </CampoFormulario>
-
-            <CampoFormulario id="sku" rotulo="SKU" erro={errors.sku?.message}>
-              <Input
-                id="sku"
-                placeholder="HF-BAN-001"
-                aria-invalid={Boolean(errors.sku)}
-                {...register('sku')}
-              />
             </CampoFormulario>
 
             <CampoFormulario id="descricao" rotulo="Descrição" erro={errors.descricao?.message}>

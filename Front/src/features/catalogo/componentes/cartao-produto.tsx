@@ -21,7 +21,7 @@ export function CartaoProduto({ produto, prioritaria = false }: PropriedadesCart
   return (
     <Card className="group h-full overflow-hidden transition-shadow duration-200 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 hover:shadow-md">
       <Link
-        to={`/produtos/${produto.slug}`}
+        to={`/produtos/${produto.id}`}
         className="flex h-full flex-col outline-none"
         aria-label={`${produto.nome}, ${produto.categoria.nome}`}
       >

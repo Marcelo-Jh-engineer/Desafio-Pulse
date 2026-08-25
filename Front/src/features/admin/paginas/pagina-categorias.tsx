@@ -182,7 +182,7 @@ export function PaginaCategorias() {
                   <div className="min-w-40 flex-1">
                     <p className="font-medium">{categoria.nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {categoria.slug} · {categoria.quantidadeProdutos}{' '}
+                      {categoria.quantidadeProdutos}{' '}
                       {categoria.quantidadeProdutos === 1 ? 'produto' : 'produtos'}
                     </p>
                   </div>

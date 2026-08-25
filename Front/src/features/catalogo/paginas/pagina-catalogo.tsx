@@ -8,7 +8,6 @@ import { EsqueletoGrade } from '@/features/catalogo/componentes/esqueleto-grade'
 import { FiltroCategorias } from '@/features/catalogo/componentes/filtro-categorias';
 import { GradeProdutos } from '@/features/catalogo/componentes/grade-produtos';
 import { Paginacao } from '@/features/catalogo/componentes/paginacao';
-import { SeletorOrdenacao } from '@/features/catalogo/componentes/seletor-ordenacao';
 import { useCategorias } from '@/features/catalogo/hooks/use-categorias';
 import { useParametrosCatalogo } from '@/features/catalogo/hooks/use-parametros-catalogo';
 import { useProdutos } from '@/features/catalogo/hooks/use-produtos';
@@ -78,15 +77,7 @@ export function PaginaCatalogo() {
             filtrar({ categoria: slug });
           }}
         />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <CampoBusca valorInicial={parametros.busca ?? ''} aoBuscar={buscar} />
-          <SeletorOrdenacao
-            valor={parametros.ordenacao ?? 'RELEVANCIA'}
-            aoOrdenar={(ordenacao) => {
-              filtrar({ ordenacao });
-            }}
-          />
-        </div>
+        <CampoBusca valorInicial={parametros.busca ?? ''} aoBuscar={buscar} />
       </section>
 
       <div ref={topoDaGrade} className="scroll-mt-24">

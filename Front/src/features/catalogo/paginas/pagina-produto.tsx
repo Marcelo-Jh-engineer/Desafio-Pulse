@@ -24,8 +24,8 @@ import { obterDisponibilidade } from '@/types/catalogo';
  * estoque, com o motivo em texto e nao apenas na cor.
  */
 export function PaginaProduto() {
-  const { slug = '' } = useParams();
-  const consulta = useProduto(slug);
+  const { id = '' } = useParams();
+  const consulta = useProduto(id);
   const [quantidade, definirQuantidade] = useState(1);
 
   if (consulta.isPending) {
@@ -57,7 +57,7 @@ export function PaginaProduto() {
       <TrilhaNavegacao
         passos={[
           { rotulo: 'Catálogo', para: '/' },
-          { rotulo: produto.categoria.nome, para: `/?categoria=${produto.categoria.slug}` },
+          { rotulo: produto.categoria.nome, para: `/?categoria=${produto.categoria.id}` },
           { rotulo: produto.nome },
         ]}
       />
@@ -78,7 +78,7 @@ export function PaginaProduto() {
             className="text-3xl"
           />
           <p className="text-sm text-muted-foreground">
-            Preço por {ROTULO_UNIDADE[produto.unidade]} · SKU {produto.sku}
+            Preço por {ROTULO_UNIDADE[produto.unidade]}
           </p>
 
           <SeloEstoque produto={produto} />
@@ -113,7 +113,7 @@ export function PaginaProduto() {
               className="flex-1"
             />
             <Button variante="secundario" tamanho="grande" asChild>
-              <Link to={`/?categoria=${produto.categoria.slug}`}>
+              <Link to={`/?categoria=${produto.categoria.id}`}>
                 Ver mais de {produto.categoria.nome}
               </Link>
             </Button>

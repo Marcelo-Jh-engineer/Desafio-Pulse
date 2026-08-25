@@ -79,7 +79,7 @@ export function PaginaAdminProdutos() {
           >
             <option value="">Todas</option>
             {categorias.data?.map((atual) => (
-              <option key={atual.id} value={atual.slug}>
+              <option key={atual.id} value={atual.id}>
                 {atual.nome}
               </option>
             ))}

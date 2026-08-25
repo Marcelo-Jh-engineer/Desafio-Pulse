@@ -78,7 +78,7 @@ export function LinhaProdutoAdmin({ produto }: { produto: Produto }) {
           <div className="min-w-40 flex-1">
             <p className="font-medium leading-snug">{produto.nome}</p>
             <p className="text-xs text-muted-foreground">
-              {produto.sku} · {produto.categoria.nome} · {produto.unidade}
+              {produto.categoria.nome} · {produto.unidade}
             </p>
           </div>
 

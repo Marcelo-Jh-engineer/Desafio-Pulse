@@ -1,13 +1,15 @@
-/** Parametros de consulta do catalogo — docs/models.md secao 13. */
+/**
+ * Parametros de consulta do catalogo — docs/models.md secao 13.
+ *
+ * Dois filtros, e so dois: categoria e nome. Nao ha escolha de ordenacao — o
+ * catalogo vem sempre na mesma ordem, decidida pelo servidor.
+ */
 export interface ParametrosCatalogo {
   /** Slug da categoria. */
   categoria?: string;
   busca?: string;
   /** Indice base 0. */
   pagina?: number;
-  /** Padrao 12. */
+  /** Padrao 10. */
   tamanho?: number;
-  ordenacao?: OrdenacaoCatalogo;
 }
-
-export type OrdenacaoCatalogo = 'RELEVANCIA' | 'PRECO_ASC' | 'PRECO_DESC' | 'NOME_ASC';

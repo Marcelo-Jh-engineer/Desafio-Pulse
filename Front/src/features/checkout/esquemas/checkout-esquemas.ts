@@ -1,26 +1,6 @@
 import { z } from 'zod';
 import { apenasDigitos } from '@/lib/documento';
 
-/** Endereco de entrega — docs/behavior.md secao 8. */
-export const esquemaEndereco = z.object({
-  cep: z
-    .string()
-    .refine((valor) => apenasDigitos(valor).length === 8, 'Informe um CEP com 8 dígitos.'),
-  logradouro: z.string().trim().min(3, 'Informe o logradouro.'),
-  // String de proposito: "s/n" e um numero valido de endereco.
-  numero: z.string().trim().min(1, 'Informe o número.'),
-  complemento: z.string().trim(),
-  bairro: z.string().trim().min(2, 'Informe o bairro.'),
-  cidade: z.string().trim().min(2, 'Informe a cidade.'),
-  uf: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine((valor) => /^[A-Z]{2}$/.test(valor), 'Informe a UF com 2 letras.'),
-});
-
-export type FormularioEndereco = z.infer<typeof esquemaEndereco>;
-
 /**
  * Dados de cartão — docs/models.md secao 10.
  *

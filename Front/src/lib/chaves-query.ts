@@ -14,7 +14,7 @@ export const chavesQuery = {
   produtos: {
     raiz: () => ['produtos'] as const,
     lista: (parametros: ParametrosCatalogo) => ['produtos', 'lista', parametros] as const,
-    porSlug: (slug: string) => ['produtos', 'slug', slug] as const,
+    porId: (id: string) => ['produtos', 'id', id] as const,
   },
   pedidos: {
     raiz: () => ['pedidos'] as const,

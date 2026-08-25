@@ -179,19 +179,20 @@ const sementes: Semente[] = [
 
 export const produtos: Produto[] = sementes.map((semente, indice) => {
   const numero = String(indice + 1).padStart(4, '0');
+  const id = `p1a2b3c4-${numero}-4000-8000-${numero.padStart(12, '0')}`;
   return {
-    id: `p1a2b3c4-${numero}-4000-8000-${numero.padStart(12, '0')}`,
+    id,
     sku: semente.sku,
     slug: semente.slug,
     nome: semente.nome,
     descricao: semente.descricao,
     precoEmCentavos: semente.precoEmCentavos,
     unidade: semente.unidade,
-    urlImagem: `/produtos/${semente.slug}.svg`,
+    // Mesma URL que a API real devolve: a imagem vem do banco, servida
+    // pelo backend. Nao ha mais arquivo em Front/public/produtos.
+    urlImagem: `/api/produtos/${id}/imagem`,
     categoria: categorias[semente.indiceCategoria]!,
     quantidadeEstoque: semente.quantidadeEstoque,
     ativo: true,
-    criadoEm: '2026-08-01T10:00:00Z',
-    atualizadoEm: '2026-08-18T09:12:00Z',
   };
 });

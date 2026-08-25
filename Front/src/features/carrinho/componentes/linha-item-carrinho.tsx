@@ -22,7 +22,7 @@ export function LinhaItemCarrinho({ item, aoMudarQuantidade, aoRemover }: Propri
   return (
     <li className="flex gap-4 border-b border-border py-4 last:border-0">
       <Link
-        to={`/produtos/${item.slug}`}
+        to={`/produtos/${item.produtoId}`}
         className="w-20 shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24"
         tabIndex={-1}
         aria-hidden="true"
@@ -33,7 +33,7 @@ export function LinhaItemCarrinho({ item, aoMudarQuantidade, aoRemover }: Propri
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <Link
-            to={`/produtos/${item.slug}`}
+            to={`/produtos/${item.produtoId}`}
             className="rounded-sm font-medium leading-snug hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {item.nome}

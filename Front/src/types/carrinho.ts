@@ -9,7 +9,6 @@ import type { Unidade } from '@/types/dominio';
  */
 export interface ItemCarrinho {
   produtoId: string;
-  slug: string;
   nome: string;
   precoEmCentavos: number;
   urlImagem: string;
@@ -27,9 +26,7 @@ export interface ItemCarrinho {
 
 export interface Carrinho {
   itens: ItemCarrinho[];
-  subtotalEmCentavos: number;
-  freteEmCentavos: number;
-  /** Derivado: subtotal + frete. */
+  /** Derivado: soma das linhas. Nao ha frete. */
   totalEmCentavos: number;
   /** Soma das quantidades, nao o numero de linhas. */
   quantidadeItens: number;

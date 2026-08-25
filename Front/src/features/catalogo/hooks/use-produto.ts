@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { buscarProdutoPorSlug } from '@/features/catalogo/servicos/catalogo-servico';
+import { buscarProdutoPorId } from '@/features/catalogo/servicos/catalogo-servico';
 import { chavesQuery } from '@/lib/chaves-query';
 
-export function useProduto(slug: string) {
+export function useProduto(id: string) {
   return useQuery({
-    queryKey: chavesQuery.produtos.porSlug(slug),
-    queryFn: () => buscarProdutoPorSlug(slug),
+    queryKey: chavesQuery.produtos.porId(id),
+    queryFn: () => buscarProdutoPorId(id),
     staleTime: 60_000,
-    enabled: slug.length > 0,
+    enabled: id.length > 0,
   });
 }

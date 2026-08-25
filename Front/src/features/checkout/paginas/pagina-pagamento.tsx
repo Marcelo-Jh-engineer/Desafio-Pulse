@@ -130,7 +130,7 @@ export function PaginaPagamento() {
             className="flex flex-col items-center gap-3 py-16 text-center"
           >
             <Lock aria-hidden="true" className="size-8 text-primary" />
-            <p className="font-medium">Confirmando o pagamento do pedido {pedido.data.numero}</p>
+            <p className="font-medium">Confirmando o pagamento do pedido {pedido.data.id}</p>
             <p className="max-w-prose text-sm text-muted-foreground">
               Não feche nem atualize esta página. Isso leva alguns segundos.
             </p>
@@ -188,7 +188,7 @@ export function PaginaPagamento() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {erroDeRede} Antes de tentar de novo, verifique o status do pedido{' '}
-                  {pedido.data.numero} — repetir agora pode gerar uma segunda cobrança.
+                  {pedido.data.id} — repetir agora pode gerar uma segunda cobrança.
                 </p>
                 <Button
                   variante="secundario"
@@ -288,7 +288,7 @@ export function PaginaPagamento() {
         <aside aria-label="Resumo do pedido">
           <Card className="sticky top-24">
             <CardContent className="space-y-3 pt-6">
-              <h2 className="text-xl font-semibold">Pedido {pedido.data.numero}</h2>
+              <h2 className="text-xl font-semibold">Pedido {pedido.data.id}</h2>
               <ul className="space-y-2 text-sm">
                 {pedido.data.itens.map((item) => (
                   <li key={item.produtoId} className="flex justify-between gap-2">

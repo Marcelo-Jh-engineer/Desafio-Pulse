@@ -17,7 +17,7 @@ function calcularJanela(pagina: number, totalPaginas: number): number[] {
 }
 
 /**
- * RF-CAT-04. Preserva filtro, busca e ordenacao porque tudo isso vive na URL e
+ * RF-CAT-04. Preserva filtro e busca porque os dois vivem na URL e
  * so a chave `pagina` muda — docs/behavior.md secao 3.
  */
 export function Paginacao({ pagina, totalPaginas, aoMudarPagina }: PropriedadesPaginacao) {
