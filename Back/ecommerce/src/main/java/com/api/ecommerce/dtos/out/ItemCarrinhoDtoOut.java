@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import com.api.ecommerce.infrastructure.entities.ItemCarrinho;
 import com.api.ecommerce.infrastructure.enums.Unidade;
@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * perceber que o preco mudou desde entao (RF-CHK-08).
  */
 @Schema(name = "ItemCarrinho")
-public record ItemCarrinhoDto(
+public record ItemCarrinhoDtoOut(
         @Schema(description = "Id publico do produto") String produtoId,
         @Schema(example = "Banana Prata") String nome,
         @Schema(description = "Endereco da foto, resolvido na leitura") String urlImagem,
@@ -33,8 +33,8 @@ public record ItemCarrinhoDto(
         @Schema(description = "O preco do catalogo andou desde que o item entrou")
         boolean precoDivergiu) {
 
-    public static ItemCarrinhoDto de(ItemCarrinho item, String urlImagem) {
-        return new ItemCarrinhoDto(
+    public static ItemCarrinhoDtoOut de(ItemCarrinho item, String urlImagem) {
+        return new ItemCarrinhoDtoOut(
                 item.getProduto().getIdPublico().toString(),
                 item.getNome(),
                 urlImagem,

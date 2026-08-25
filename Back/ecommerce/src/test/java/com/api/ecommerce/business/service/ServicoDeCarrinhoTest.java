@@ -7,8 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.api.ecommerce.dtos.CarrinhoDto;
-import com.api.ecommerce.dtos.ItemCarrinhoDto;
+import com.api.ecommerce.dtos.out.CarrinhoDtoOut;
+import com.api.ecommerce.dtos.out.ItemCarrinhoDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
 import com.api.ecommerce.infrastructure.entities.Categoria;
 import com.api.ecommerce.infrastructure.entities.Produto;
@@ -119,7 +119,7 @@ class ServicoDeCarrinhoTest {
     void criaAbertoComPrimeiroItem() {
         when(carrinhos.abertoDe(SUB)).thenReturn(Optional.empty());
 
-        CarrinhoDto dto = servico.criar(SUB, banana.getIdPublico(), 3);
+        CarrinhoDtoOut dto = servico.criar(SUB, banana.getIdPublico(), 3);
 
         assertThat(dto.status()).isEqualTo(StatusCarrinho.ABERTO);
         assertThat(dto.itens()).hasSize(1);
@@ -176,14 +176,14 @@ class ServicoDeCarrinhoTest {
         Carrinho carrinho = carrinhoGravado();
         when(carrinhos.abertoDe(SUB)).thenReturn(Optional.of(carrinho));
 
-        CarrinhoDto dto = servico.adicionar(SUB, arroz.getIdPublico(), 2);
+        CarrinhoDtoOut dto = servico.adicionar(SUB, arroz.getIdPublico(), 2);
 
         assertThat(dto.totalEmCentavos()).isEqualTo(649L * 3 + 2799L * 2);
 
         // A afirmacao que importa: o total e a soma das linhas, e nao um numero
         // paralelo que pode discordar delas.
         assertThat(dto.totalEmCentavos()).isEqualTo(
-                dto.itens().stream().mapToLong(ItemCarrinhoDto::totalLinhaEmCentavos).sum());
+                dto.itens().stream().mapToLong(ItemCarrinhoDtoOut::totalLinhaEmCentavos).sum());
     }
 
     @Test
@@ -207,7 +207,7 @@ class ServicoDeCarrinhoTest {
         carrinho.adicionar(banana, 1);
         when(carrinhos.abertoDe(SUB)).thenReturn(Optional.of(carrinho));
 
-        CarrinhoDto dto = servico.remover(SUB, banana.getIdPublico(), 1);
+        CarrinhoDtoOut dto = servico.remover(SUB, banana.getIdPublico(), 1);
 
         assertThat(dto.itens()).isEmpty();
         assertThat(dto.totalEmCentavos()).isZero();
@@ -229,7 +229,7 @@ class ServicoDeCarrinhoTest {
         carrinho.adicionar(banana, 5);
         when(carrinhos.abertoDe(SUB)).thenReturn(Optional.of(carrinho));
 
-        CarrinhoDto dto = servico.remover(SUB, banana.getIdPublico(), 2);
+        CarrinhoDtoOut dto = servico.remover(SUB, banana.getIdPublico(), 2);
 
         assertThat(dto.itens().get(0).quantidade()).isEqualTo(3);
         assertThat(dto.itens().get(0).totalLinhaEmCentavos()).isEqualTo(649L * 3);
@@ -245,7 +245,7 @@ class ServicoDeCarrinhoTest {
         // Pedir mais do que tem significa "tira tudo", e nao erro: o resultado
         // seria o mesmo, e recusar obrigaria quem chama a saber a quantidade
         // exata antes de pedir.
-        CarrinhoDto dto = servico.remover(SUB, banana.getIdPublico(), 99);
+        CarrinhoDtoOut dto = servico.remover(SUB, banana.getIdPublico(), 99);
 
         assertThat(dto.itens()).isEmpty();
     }

@@ -3,10 +3,10 @@ package com.api.ecommerce.controllers;
 import com.api.ecommerce.business.mapper.UsuarioMapper;
 import com.api.ecommerce.business.service.ServicoDeCarrinho;
 import com.api.ecommerce.business.service.ServicoDeUsuario;
-import com.api.ecommerce.dtos.CarrinhoDto;
-import com.api.ecommerce.dtos.ErroDto;
-import com.api.ecommerce.dtos.RequisicaoDeItemDoCarrinho;
-import com.api.ecommerce.dtos.UsuarioDto;
+import com.api.ecommerce.dtos.in.ItemCarrinhoDtoIn;
+import com.api.ecommerce.dtos.out.CarrinhoDtoOut;
+import com.api.ecommerce.dtos.out.ErroDtoOut;
+import com.api.ecommerce.dtos.out.UsuarioDtoOut;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -77,18 +77,18 @@ public class CarrinhoController {
             responses = {
                 @ApiResponse(responseCode = "201", description = "Carrinho com o item dentro"),
                 @ApiResponse(responseCode = "400", description = "Produto ausente ou quantidade fora do intervalo",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "401", description = "Sem token ou token invalido",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "404", description = "Produto inexistente",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "409", description = "Estoque insuficiente",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CarrinhoDto criar(@AuthenticationPrincipal Jwt token,
-                             @Valid @RequestBody RequisicaoDeItemDoCarrinho requisicao) {
+    public CarrinhoDtoOut criar(@AuthenticationPrincipal Jwt token,
+                             @Valid @RequestBody ItemCarrinhoDtoIn requisicao) {
         return carrinho.criar(donoDaRequisicao(token), requisicao.produtoId(),
                 requisicao.quantidade());
     }
@@ -104,15 +104,15 @@ public class CarrinhoController {
             responses = {
                 @ApiResponse(responseCode = "200", description = "Carrinho atualizado"),
                 @ApiResponse(responseCode = "401", description = "Sem token ou token invalido",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "404", description = "Sem carrinho aberto, ou produto inexistente",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "409", description = "Estoque insuficiente",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @PostMapping("/itens")
-    public CarrinhoDto adicionar(@AuthenticationPrincipal Jwt token,
-                                 @Valid @RequestBody RequisicaoDeItemDoCarrinho requisicao) {
+    public CarrinhoDtoOut adicionar(@AuthenticationPrincipal Jwt token,
+                                 @Valid @RequestBody ItemCarrinhoDtoIn requisicao) {
         return carrinho.adicionar(donoDaRequisicao(token), requisicao.produtoId(),
                 requisicao.quantidade());
     }
@@ -128,12 +128,12 @@ public class CarrinhoController {
             responses = {
                 @ApiResponse(responseCode = "200", description = "Carrinho atualizado"),
                 @ApiResponse(responseCode = "401", description = "Sem token ou token invalido",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "404", description = "Sem carrinho aberto, ou produto fora dele",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @DeleteMapping("/itens/{produtoId}")
-    public CarrinhoDto remover(
+    public CarrinhoDtoOut remover(
             @AuthenticationPrincipal Jwt token,
             @Parameter(description = "Id publico do produto") @PathVariable UUID produtoId,
             @Parameter(description = "Quanto tirar da linha. Acima do que ha na linha, tira tudo")
@@ -161,12 +161,12 @@ public class CarrinhoController {
             responses = {
                 @ApiResponse(responseCode = "200", description = "O carrinho aberto"),
                 @ApiResponse(responseCode = "401", description = "Sem token ou token invalido",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class))),
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class))),
                 @ApiResponse(responseCode = "404", description = "Sem carrinho aberto",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @GetMapping
-    public CarrinhoDto ver(@AuthenticationPrincipal Jwt token) {
+    public CarrinhoDtoOut ver(@AuthenticationPrincipal Jwt token) {
         return carrinho.ver(donoDaRequisicao(token));
     }
 
@@ -183,7 +183,7 @@ public class CarrinhoController {
      * daria dois lugares para ela mudar.
      */
     private UUID donoDaRequisicao(Jwt token) {
-        UsuarioDto eu = usuarioMapper.paraDto(token);
+        UsuarioDtoOut eu = usuarioMapper.paraDto(token);
         UUID sub = UUID.fromString(eu.id());
 
         usuarios.sincronizar(sub, eu.nome(), eu.email(), eu.login());

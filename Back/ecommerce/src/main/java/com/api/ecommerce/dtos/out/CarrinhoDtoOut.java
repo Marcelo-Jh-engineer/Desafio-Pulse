@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import com.api.ecommerce.infrastructure.entities.Carrinho;
 import com.api.ecommerce.infrastructure.enums.StatusCarrinho;
@@ -15,10 +15,10 @@ import java.util.UUID;
  * servem para divergirem um dia.
  */
 @Schema(name = "Carrinho")
-public record CarrinhoDto(
+public record CarrinhoDtoOut(
         @Schema(description = "Id publico do carrinho") String id,
         StatusCarrinho status,
-        List<ItemCarrinhoDto> itens,
+        List<ItemCarrinhoDtoOut> itens,
         @Schema(description = "Soma de preco x quantidade das linhas", example = "1947")
         long totalEmCentavos,
         @Schema(description = "Soma das quantidades, nao o numero de linhas", example = "3")
@@ -28,12 +28,12 @@ public record CarrinhoDto(
      * @param urlsDasImagens endereco da foto por id publico de produto, ja
      *                       resolvido por ServicoDeImagemDeProduto
      */
-    public static CarrinhoDto de(Carrinho carrinho, Map<UUID, String> urlsDasImagens) {
-        return new CarrinhoDto(
+    public static CarrinhoDtoOut de(Carrinho carrinho, Map<UUID, String> urlsDasImagens) {
+        return new CarrinhoDtoOut(
                 carrinho.getIdPublico().toString(),
                 carrinho.getStatus(),
                 carrinho.getItens().stream()
-                        .map(item -> ItemCarrinhoDto.de(item,
+                        .map(item -> ItemCarrinhoDtoOut.de(item,
                                 urlsDasImagens.get(item.getProduto().getIdPublico())))
                         .toList(),
                 carrinho.totalEmCentavos(),

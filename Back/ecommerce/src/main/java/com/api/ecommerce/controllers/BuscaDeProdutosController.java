@@ -1,8 +1,8 @@
 package com.api.ecommerce.controllers;
 
 import com.api.ecommerce.business.service.ServicoDeCatalogo;
-import com.api.ecommerce.dtos.PaginaDto;
-import com.api.ecommerce.dtos.ProdutoDto;
+import com.api.ecommerce.dtos.out.PaginaDtoOut;
+import com.api.ecommerce.dtos.out.ProdutoDtoOut;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,7 +59,7 @@ public class BuscaDeProdutosController {
                     A ordem e a mesma da listagem, e tambem nao se escolhe.
                     """)
     @GetMapping("/busca")
-    public PaginaDto<ProdutoDto> buscar(
+    public PaginaDtoOut<ProdutoDtoOut> buscar(
             @Parameter(description = "Pedaco do nome do produto", example = "banana")
             @RequestParam(required = false) String nome,
 

@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.in;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
@@ -18,7 +18,7 @@ import java.util.UUID;
  * chega a ser um pedido — zero ou negativa.
  */
 @Schema(name = "ItemParaOCarrinho")
-public record RequisicaoDeItemDoCarrinho(
+public record ItemCarrinhoDtoIn(
         @NotNull(message = "Informe o produto.")
         @Schema(description = "Id publico do produto",
                 example = "187f774c-4d3a-48ab-921e-e7fa7fdda55b")

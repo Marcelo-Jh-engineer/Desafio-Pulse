@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -17,7 +17,7 @@ import org.springframework.data.domain.Page;
  * @param pagina indice base 0
  */
 @Schema(name = "Pagina")
-public record PaginaDto<T>(
+public record PaginaDtoOut<T>(
         List<T> conteudo,
         @Schema(description = "Indice base 0", example = "0") int pagina,
         @Schema(example = "10") int tamanho,
@@ -26,8 +26,8 @@ public record PaginaDto<T>(
         boolean primeira,
         boolean ultima) {
 
-    public static <E, D> PaginaDto<D> de(Page<E> pagina, Function<E, D> conversor) {
-        return new PaginaDto<>(
+    public static <E, D> PaginaDtoOut<D> de(Page<E> pagina, Function<E, D> conversor) {
+        return new PaginaDtoOut<>(
                 pagina.getContent().stream().map(conversor).toList(),
                 pagina.getNumber(),
                 pagina.getSize(),

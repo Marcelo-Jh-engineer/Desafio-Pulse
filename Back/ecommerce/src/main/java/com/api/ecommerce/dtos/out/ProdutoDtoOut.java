@@ -1,4 +1,4 @@
-package com.api.ecommerce.dtos;
+package com.api.ecommerce.dtos.out;
 
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.enums.Unidade;
@@ -22,7 +22,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * (docs/models.md secao 4). Some da listagem so o que estiver inativo.
  */
 @Schema(name = "Produto")
-public record ProdutoDto(
+public record ProdutoDtoOut(
         @Schema(description = "Identifica o produto na loja e na URL",
                 example = "187f774c-4d3a-48ab-921e-e7fa7fdda55b") String id,
         @Schema(example = "Cerveja Pilsen Lata 350ml") String nome,
@@ -31,21 +31,21 @@ public record ProdutoDto(
         long precoEmCentavos,
         @Schema(description = "Rotulo de venda, nao fator de conversao") Unidade unidade,
         String urlImagem,
-        CategoriaResumidaDto categoria,
+        CategoriaResumidaDtoOut categoria,
         @Schema(description = "Estoque disponivel. Zero deixa o produto indisponivel, nao invisivel",
                 example = "240")
         int quantidadeEstoque,
         boolean ativo) {
 
-    public static ProdutoDto de(Produto produto, String urlImagem) {
-        return new ProdutoDto(
+    public static ProdutoDtoOut de(Produto produto, String urlImagem) {
+        return new ProdutoDtoOut(
                 produto.getIdPublico().toString(),
                 produto.getNome(),
                 produto.getDescricao(),
                 produto.getPrecoEmCentavos(),
                 produto.getUnidade(),
                 urlImagem,
-                CategoriaResumidaDto.de(produto.getCategoria()),
+                CategoriaResumidaDtoOut.de(produto.getCategoria()),
                 produto.getQuantidadeEstoque(),
                 produto.isAtivo());
     }

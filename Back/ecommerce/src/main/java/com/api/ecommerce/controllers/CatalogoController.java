@@ -1,10 +1,10 @@
 package com.api.ecommerce.controllers;
 
 import com.api.ecommerce.business.service.ServicoDeCatalogo;
-import com.api.ecommerce.dtos.CategoriaDto;
-import com.api.ecommerce.dtos.ErroDto;
-import com.api.ecommerce.dtos.PaginaDto;
-import com.api.ecommerce.dtos.ProdutoDto;
+import com.api.ecommerce.dtos.out.CategoriaDtoOut;
+import com.api.ecommerce.dtos.out.ErroDtoOut;
+import com.api.ecommerce.dtos.out.PaginaDtoOut;
+import com.api.ecommerce.dtos.out.ProdutoDtoOut;
 import com.api.ecommerce.infrastructure.entities.ImagemDeProduto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -60,7 +60,7 @@ public class CatalogoController {
                     da categoria, depois pelo nome.
                     """)
     @GetMapping("/produtos")
-    public PaginaDto<ProdutoDto> listar(
+    public PaginaDtoOut<ProdutoDtoOut> listar(
             @Parameter(description = "Id da categoria. Ausente lista todas",
                     example = "6d362df7-8f32-4da9-aae1-6928fb0eb817")
             @RequestParam(required = false) UUID categoria,
@@ -84,10 +84,10 @@ public class CatalogoController {
             responses = {
                 @ApiResponse(responseCode = "200", description = "O produto"),
                 @ApiResponse(responseCode = "404", description = "Inexistente ou inativo",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @GetMapping("/produtos/{id}")
-    public ProdutoDto porId(
+    public ProdutoDtoOut porId(
             @Parameter(description = "Id publico do produto") @PathVariable UUID id) {
         return servico.porId(id);
     }
@@ -96,7 +96,7 @@ public class CatalogoController {
     @Operation(summary = "Lista as categorias ativas",
             description = "So as ativas, na ordem definida pelo admin. O front nunca codifica esta lista.")
     @GetMapping("/categorias")
-    public List<CategoriaDto> categorias() {
+    public List<CategoriaDtoOut> categorias() {
         return servico.categoriasAtivas();
     }
 
@@ -115,7 +115,7 @@ public class CatalogoController {
                 @ApiResponse(responseCode = "200", description = "Bytes da imagem",
                         content = @Content(mediaType = "image/*")),
                 @ApiResponse(responseCode = "404", description = "Produto sem imagem gravada",
-                        content = @Content(schema = @Schema(implementation = ErroDto.class)))
+                        content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
             })
     @GetMapping("/produtos/{id}/imagem")
     public ResponseEntity<byte[]> imagem(

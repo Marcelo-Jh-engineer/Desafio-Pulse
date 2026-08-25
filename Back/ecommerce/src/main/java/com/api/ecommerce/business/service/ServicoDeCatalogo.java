@@ -1,8 +1,8 @@
 package com.api.ecommerce.business.service;
 
-import com.api.ecommerce.dtos.CategoriaDto;
-import com.api.ecommerce.dtos.PaginaDto;
-import com.api.ecommerce.dtos.ProdutoDto;
+import com.api.ecommerce.dtos.out.CategoriaDtoOut;
+import com.api.ecommerce.dtos.out.PaginaDtoOut;
+import com.api.ecommerce.dtos.out.ProdutoDtoOut;
 import com.api.ecommerce.infrastructure.entities.ImagemDeProduto;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
@@ -69,7 +69,7 @@ public class ServicoDeCatalogo {
      * A ordem do resultado nao se escolhe: ela e fixa na consulta.
      */
     @Transactional(readOnly = true)
-    public PaginaDto<ProdutoDto> listar(UUID idCategoria, String busca,
+    public PaginaDtoOut<ProdutoDtoOut> listar(UUID idCategoria, String busca,
                                         Integer pagina, Integer tamanho) {
         String padrao = padraoDeBusca(vazioViraNulo(busca));
 
@@ -84,19 +84,19 @@ public class ServicoDeCatalogo {
      * API, a lista do que ja existiu.
      */
     @Transactional(readOnly = true)
-    public ProdutoDto porId(UUID idPublico) {
+    public ProdutoDtoOut porId(UUID idPublico) {
         Produto produto = produtos.findByIdPublico(idPublico)
                 .filter(Produto::isAtivo)
                 .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Nao encontramos este produto."));
 
-        return ProdutoDto.de(produto, enderecoDaImagem.urlDe(produto));
+        return ProdutoDtoOut.de(produto, enderecoDaImagem.urlDe(produto));
     }
 
     /** A lista e curta e estavel, entao sai como array puro, sem paginacao. */
     @Transactional(readOnly = true)
-    public List<CategoriaDto> categoriasAtivas() {
+    public List<CategoriaDtoOut> categoriasAtivas() {
         return categorias.findByAtivaTrueOrderByOrdemAsc().stream()
-                .map(CategoriaDto::de)
+                .map(CategoriaDtoOut::de)
                 .toList();
     }
 
@@ -123,11 +123,11 @@ public class ServicoDeCatalogo {
     }
 
     /** Monta o DTO ja com o endereco da imagem resolvido, numa consulta so. */
-    private PaginaDto<ProdutoDto> paraDto(Page<Produto> pagina) {
+    private PaginaDtoOut<ProdutoDtoOut> paraDto(Page<Produto> pagina) {
         Map<UUID, String> urls = enderecoDaImagem.urlsDe(pagina.getContent());
 
-        return PaginaDto.de(pagina, produto ->
-                ProdutoDto.de(produto, urls.get(produto.getIdPublico())));
+        return PaginaDtoOut.de(pagina, produto ->
+                ProdutoDtoOut.de(produto, urls.get(produto.getIdPublico())));
     }
 
     /**

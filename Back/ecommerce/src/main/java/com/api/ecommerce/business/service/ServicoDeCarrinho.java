@@ -1,6 +1,6 @@
 package com.api.ecommerce.business.service;
 
-import com.api.ecommerce.dtos.CarrinhoDto;
+import com.api.ecommerce.dtos.out.CarrinhoDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
 import com.api.ecommerce.infrastructure.entities.ItemCarrinho;
 import com.api.ecommerce.infrastructure.entities.Produto;
@@ -62,7 +62,7 @@ public class ServicoDeCarrinho {
      * comportamento que a pessoa espera, do que devolver erro de banco.
      */
     @Transactional
-    public CarrinhoDto criar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
+    public CarrinhoDtoOut criar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
         Usuario dono = exigirUsuario(sub);
 
         Carrinho carrinho = carrinhos.abertoDe(sub)
@@ -83,7 +83,7 @@ public class ServicoDeCarrinho {
      * pedindo 5 ao estoque, e conferir so os 2 deixaria passar.
      */
     @Transactional
-    public CarrinhoDto adicionar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
+    public CarrinhoDtoOut adicionar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
         exigirUsuario(sub);
         return adicionarNoCarrinho(carrinhoAbertoDe(sub), idPublicoDoProduto, quantidade);
     }
@@ -96,7 +96,7 @@ public class ServicoDeCarrinho {
      * resultado seria o mesmo.
      */
     @Transactional
-    public CarrinhoDto remover(UUID sub, UUID idPublicoDoProduto, int quantidade) {
+    public CarrinhoDtoOut remover(UUID sub, UUID idPublicoDoProduto, int quantidade) {
         if (quantidade < 1) {
             throw new IllegalArgumentException("Quantidade a remover precisa ser pelo menos 1");
         }
@@ -119,12 +119,12 @@ public class ServicoDeCarrinho {
 
     /** O carrinho aberto de quem pediu, com as linhas e o total. */
     @Transactional(readOnly = true)
-    public CarrinhoDto ver(UUID sub) {
+    public CarrinhoDtoOut ver(UUID sub) {
         exigirUsuario(sub);
         return montar(carrinhoAbertoDe(sub));
     }
 
-    private CarrinhoDto adicionarNoCarrinho(Carrinho carrinho, UUID idPublicoDoProduto,
+    private CarrinhoDtoOut adicionarNoCarrinho(Carrinho carrinho, UUID idPublicoDoProduto,
                                             int quantidade) {
         if (quantidade < 1) {
             throw new IllegalArgumentException("Quantidade precisa ser pelo menos 1");
@@ -155,7 +155,7 @@ public class ServicoDeCarrinho {
      * O total nao precisa de releitura — `Carrinho.totalEmCentavos()` soma as
      * linhas que estao em memoria, as mesmas que acabaram de ser gravadas.
      */
-    private CarrinhoDto gravarEMontar(Carrinho carrinho) {
+    private CarrinhoDtoOut gravarEMontar(Carrinho carrinho) {
         carrinhos.saveAndFlush(carrinho);
         return montar(carrinho);
     }
@@ -164,12 +164,12 @@ public class ServicoDeCarrinho {
      * Monta a resposta com o endereco das fotos resolvido — uma consulta para o
      * carrinho inteiro, e nao uma por linha.
      */
-    private CarrinhoDto montar(Carrinho carrinho) {
+    private CarrinhoDtoOut montar(Carrinho carrinho) {
         List<Produto> daLinha = carrinho.getItens().stream()
                 .map(ItemCarrinho::getProduto)
                 .toList();
 
-        return CarrinhoDto.de(carrinho, enderecoDaImagem.urlsDe(daLinha));
+        return CarrinhoDtoOut.de(carrinho, enderecoDaImagem.urlsDe(daLinha));
     }
 
     /**
