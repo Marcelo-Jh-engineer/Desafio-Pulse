@@ -16,6 +16,14 @@ export const chavesQuery = {
     lista: (parametros: ParametrosCatalogo) => ['produtos', 'lista', parametros] as const,
     porId: (id: string) => ['produtos', 'id', id] as const,
   },
+  /**
+   * O carrinho e do usuario autenticado, e o servidor o identifica pelo token —
+   * por isso a chave nao carrega id de usuario. Colocar o `sub` aqui seria dado
+   * de sessao numa chave de cache, e a regra de LGPD acima vale para ele.
+   */
+  carrinho: {
+    atual: () => ['carrinho'] as const,
+  },
   pedidos: {
     raiz: () => ['pedidos'] as const,
     porId: (id: string) => ['pedidos', id] as const,

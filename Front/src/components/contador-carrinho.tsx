@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCarrinho } from '@/lib/carrinho-store';
+import { useCarrinho } from '@/hooks/use-carrinho';
 
 /**
  * Contador do cabecalho — RF-CAR-06.
@@ -10,7 +10,8 @@ import { useCarrinho } from '@/lib/carrinho-store';
  * (RNF-A11Y-05): quem nao ve o badge precisa ouvir que o item entrou.
  */
 export function ContadorCarrinho() {
-  const { quantidadeItens } = useCarrinho();
+  const { carrinho } = useCarrinho();
+  const { quantidadeItens } = carrinho;
 
   return (
     <Button variante="fantasma" tamanho="icone" className="relative" asChild>

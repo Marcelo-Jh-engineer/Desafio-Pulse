@@ -7,7 +7,7 @@ import { Preco } from '@/components/preco';
 import { AvisoDivergencias } from '@/features/checkout/componentes/aviso-divergencias';
 import { IndicadorEtapas } from '@/features/checkout/componentes/indicador-etapas';
 import { useCriarPedido, useValidacaoDoCarrinho } from '@/features/checkout/hooks/use-checkout';
-import { useCarrinho } from '@/lib/carrinho-store';
+import { useCarrinho } from '@/hooks/use-carrinho';
 import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
 
 /**
@@ -21,7 +21,7 @@ import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
  * item entrou bloqueia o avanco ate a pessoa ver a diferenca (RF-CHK-08).
  */
 export function PaginaCheckout() {
-  const carrinho = useCarrinho();
+  const { carrinho } = useCarrinho();
   const validacao = useValidacaoDoCarrinho(carrinho.itens);
   const criarPedido = useCriarPedido();
   const navegar = useNavigate();

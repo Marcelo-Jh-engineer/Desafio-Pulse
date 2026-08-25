@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { clienteHttp } from '@/lib/http';
 import { rotaDeEntrada, useSessaoStore } from '@/lib/sessao-store';
-import { useCarrinhoStore } from '@/lib/carrinho-store';
+import { useIntencaoDeCompraStore } from '@/lib/intencao-de-compra-store';
+import { adicionarAoCarrinho } from '@/lib/carrinho-servico';
 import { sanitizarDestino } from '@/lib/redirecionamento';
 import { lerToken } from '@/lib/token';
 import type {
@@ -21,9 +22,8 @@ import type {
 
 function useConcluir() {
   const entrar = useSessaoStore((estado) => estado.entrar);
-  const consumirIntencao = useCarrinhoStore((estado) => estado.consumirIntencao);
-  const descartarIntencao = useCarrinhoStore((estado) => estado.descartarIntencao);
-  const restaurar = useCarrinhoStore((estado) => estado.restaurar);
+  const consumirIntencao = useIntencaoDeCompraStore((estado) => estado.consumirIntencao);
+  const descartarIntencao = useIntencaoDeCompraStore((estado) => estado.descartarIntencao);
   const clienteQuery = useQueryClient();
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
@@ -49,14 +49,24 @@ function useConcluir() {
       // Consumida **uma unica vez**: recarregar depois nao adiciona de novo.
       const intencao = consumirIntencao();
       if (intencao) {
-        restaurar(intencao.item, 0);
-        toast.success(`${intencao.item.nome} adicionado ao carrinho`);
+        // Agora ha token, entao o item entra no carrinho do servidor. E aqui
+        // que o preco e o estoque sao lidos de verdade — os da tela onde a
+        // pessoa clicou podem ter mudado durante o login.
+        void adicionarAoCarrinho(intencao.produtoId, intencao.quantidade)
+          .then(() => {
+            toast.success(`${intencao.nome} adicionado ao carrinho`);
+          })
+          .catch(() => {
+            // Sem estoque, ou produto que saiu do ar: o login continua valendo,
+            // e insistir num item que o servidor recusou seria pior.
+            toast.error(`Não foi possível adicionar ${intencao.nome} ao carrinho.`);
+          });
       }
 
       const destino = sanitizarDestino(parametros.get('retornarPara'));
       void navegar(destino, { replace: true });
     },
-    [entrar, consumirIntencao, descartarIntencao, restaurar, clienteQuery, navegar, parametros],
+    [entrar, consumirIntencao, descartarIntencao, clienteQuery, navegar, parametros],
   );
 }
 

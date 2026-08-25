@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Printer } from 'lucide-react';
 import { TituloDaPagina } from '@/components/titulo-da-pagina';
@@ -11,7 +12,7 @@ import { DetalhesDoPedido } from '@/features/checkout/componentes/detalhes-do-pe
 import { IndicadorEtapas } from '@/features/checkout/componentes/indicador-etapas';
 import { ResumoDoPagamento } from '@/features/checkout/componentes/resumo-do-pagamento';
 import { usePedido } from '@/features/checkout/hooks/use-checkout';
-import { useCarrinhoStore } from '@/lib/carrinho-store';
+import { chavesQuery } from '@/lib/chaves-query';
 import { ErroDeAplicacao } from '@/lib/erros';
 
 /**
@@ -27,13 +28,18 @@ import { ErroDeAplicacao } from '@/lib/erros';
 export function PaginaConfirmacao() {
   const { id = '' } = useParams();
   const pedido = usePedido(id);
-  const esvaziar = useCarrinhoStore((estado) => estado.esvaziar);
+  const clienteQuery = useQueryClient();
 
   const aprovado = pedido.data?.status === 'PAGO';
 
   useEffect(() => {
-    if (aprovado) esvaziar();
-  }, [aprovado, esvaziar]);
+    // Quem esvazia o carrinho e o servidor, ao converte-lo em pedido. Aqui so
+    // se descarta a copia em cache, para a tela nao seguir mostrando itens que
+    // ja viraram compra.
+    if (aprovado) {
+      void clienteQuery.invalidateQueries({ queryKey: chavesQuery.carrinho.atual() });
+    }
+  }, [aprovado, clienteQuery]);
 
   if (pedido.isPending) return <Skeleton className="h-96 w-full" />;
 

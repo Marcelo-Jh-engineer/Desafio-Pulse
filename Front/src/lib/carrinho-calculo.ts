@@ -1,56 +1,29 @@
-import type { Carrinho, ItemCarrinho } from '@/types/carrinho';
-
 /**
- * Regras de dinheiro do carrinho — docs/models.md secao 7.
+ * Limite de quantidade do carrinho — docs/models.md secao 7.
  *
- * Funcoes puras, sem React e sem store: e o unico lugar do projeto que faz
- * conta de valor, e o unico que precisa de teste unitario para isso
- * (RNF-MAN-03). O store apenas chama daqui.
+ * **Nao ha conta de dinheiro aqui.** Quem soma o carrinho e o servidor: o total
+ * vem pronto em `/api/carrinho`, e recalcular no cliente daria dois numeros
+ * para a mesma pergunta.
  *
- * **Tudo em centavos inteiros.** Ponto flutuante em dinheiro erra: `0.1 + 0.2`
- * nao da `0.3`, e o erro aparece no total do cliente.
+ * **Nao ha teto fixo por linha.** O unico limite e o estoque do produto. Um
+ * teto arbitrario obrigaria a interface e o servidor a concordarem sobre um
+ * numero que nenhum requisito pediu.
+ *
+ * O que sobra e antecipacao de UX: nao deixar a pessoa pedir o que o servidor
+ * vai recusar. A validacao que vale e a do backend, em ServicoDeEstoque.
  */
 
-/** Teto por linha, independente do estoque. */
-export const QUANTIDADE_MAXIMA = 20;
-
 /**
- * Teto real de uma linha: o menor entre o limite fixo e o estoque disponivel.
+ * Quanto uma linha pode ter: o estoque disponivel, e nada alem dele.
  * Estoque zerado devolve 0 — a linha nao deveria existir.
  */
 export function tetoDaLinha(estoqueDisponivel: number): number {
-  return Math.max(0, Math.min(QUANTIDADE_MAXIMA, estoqueDisponivel));
+  return Math.max(0, estoqueDisponivel);
 }
 
-/** Prende a quantidade entre 1 e o teto. Zero e tratado por quem remove a linha. */
+/** Prende a quantidade entre 1 e o estoque. Zero e tratado por quem remove a linha. */
 export function limitarQuantidade(quantidade: number, estoqueDisponivel: number): number {
   const teto = tetoDaLinha(estoqueDisponivel);
   if (teto === 0) return 0;
   return Math.max(1, Math.min(Math.trunc(quantidade), teto));
-}
-
-/** Recalcula o total da linha. Nunca confie no valor que veio junto. */
-export function recalcularLinha(item: ItemCarrinho): ItemCarrinho {
-  const quantidade = limitarQuantidade(item.quantidade, item.estoqueDisponivel);
-  return {
-    ...item,
-    quantidade,
-    totalLinhaEmCentavos: item.precoEmCentavos * quantidade,
-  };
-}
-
-/**
- * Monta o carrinho inteiro a partir das linhas. Todos os totais sao derivados
- * aqui, a cada mutacao — nao existe total guardado que possa dessincronizar.
- */
-export function calcularCarrinho(itens: ItemCarrinho[]): Carrinho {
-  const linhas = itens.map(recalcularLinha);
-
-  const quantidadeItens = linhas.reduce((total, item) => total + item.quantidade, 0);
-
-  return {
-    itens: linhas,
-    totalEmCentavos: linhas.reduce((total, item) => total + item.totalLinhaEmCentavos, 0),
-    quantidadeItens,
-  };
 }

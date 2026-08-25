@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useSessaoStore } from '@/lib/sessao-store';
-import { useCarrinhoStore } from '@/lib/carrinho-store';
 import { clienteHttp } from '@/lib/http';
 
 /**
@@ -13,7 +12,6 @@ import { clienteHttp } from '@/lib/http';
  */
 export function useSair() {
   const sair = useSessaoStore((estado) => estado.sair);
-  const esvaziar = useCarrinhoStore((estado) => estado.esvaziar);
   const clienteQuery = useQueryClient();
   const navegar = useNavigate();
 
@@ -29,10 +27,11 @@ export function useSair() {
     });
 
     sair();
-    // O carrinho e do usuario que estava logado; deixar para o proximo seria
-    // vazamento entre sessoes — docs/behavior.md secao 2.
-    esvaziar();
+    // O `clear` leva o carrinho junto: ele e estado de servidor em cache, e o
+    // carrinho de quem estava logado nao pode aparecer para o proximo —
+    // docs/behavior.md secao 2. No servidor ele continua la, esperando o
+    // proximo login da mesma pessoa.
     clienteQuery.clear();
     void navegar('/', { replace: true });
-  }, [sair, esvaziar, clienteQuery, navegar]);
+  }, [sair, clienteQuery, navegar]);
 }

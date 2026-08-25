@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { useCarrinhoStore } from '@/lib/carrinho-store';
+import { useAdicionarAoCarrinho } from '@/hooks/use-carrinho';
+import { useIntencaoDeCompraStore } from '@/lib/intencao-de-compra-store';
+import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
 import { useSessaoStore } from '@/lib/sessao-store';
 import { urlDeLoginCom } from '@/lib/redirecionamento';
 import { obterDisponibilidade, type Produto } from '@/types/catalogo';
@@ -39,8 +41,8 @@ export function BotaoAdicionarAoCarrinho({
 }: PropriedadesBotaoAdicionar) {
   const autenticado = useSessaoStore((estado) => estado.autenticado);
   const temPapel = useSessaoStore((estado) => estado.temPapel);
-  const adicionar = useCarrinhoStore((estado) => estado.adicionar);
-  const guardarIntencao = useCarrinhoStore((estado) => estado.guardarIntencao);
+  const adicionar = useAdicionarAoCarrinho();
+  const guardarIntencao = useIntencaoDeCompraStore((estado) => estado.guardarIntencao);
   const navegar = useNavigate();
 
   // Admin nao compra — docs/prd.md secao 2.3. Some o botao em vez de
@@ -51,15 +53,26 @@ export function BotaoAdicionarAoCarrinho({
 
   function aoClicar() {
     if (!autenticado) {
-      // Guarda a linha inteira: depois do login o item entra sem precisar
-      // buscar o produto de novo.
-      guardarIntencao(produto, quantidade);
+      // So o id e a quantidade: quem monta a linha, depois do login, e a API —
+      // com o preco e o estoque daquele momento, e nao os desta tela.
+      guardarIntencao({ produtoId: produto.id, nome: produto.nome, quantidade });
       void navegar(urlDeLoginCom(destinoDeRetorno ?? `/produtos/${produto.id}`));
       return;
     }
 
-    adicionar(produto, quantidade);
-    toast.success(`${produto.nome} adicionado ao carrinho`);
+    adicionar.mutate(
+      { produtoId: produto.id, quantidade },
+      {
+        onSuccess: () => {
+          toast.success(`${produto.nome} adicionado ao carrinho`);
+        },
+        // O servidor e quem confere o estoque, e a recusa dele e a que vale:
+        // pode ter mudado entre a leitura desta tela e o clique.
+        onError: (erro) => {
+          toast.error(erro instanceof ErroDeAplicacao ? erro.message : MENSAGENS_ERRO.servidor);
+        },
+      },
+    );
   }
 
   return (
@@ -67,8 +80,9 @@ export function BotaoAdicionarAoCarrinho({
       variante="acao"
       tamanho={tamanho}
       className={className}
-      disabled={indisponivel}
-      aria-disabled={indisponivel}
+      disabled={indisponivel || adicionar.isPending}
+      aria-disabled={indisponivel || adicionar.isPending}
+      aria-busy={adicionar.isPending}
       aria-label={`Adicionar ${produto.nome} ao carrinho`}
       onClick={aoClicar}
     >
