@@ -19,7 +19,7 @@ import org.hibernate.annotations.CreationTimestamp;
 /**
  * Linha do carrinho — docs/models.md secao 7.
  *
- * Nome, preco, slug e imagem sao um retrato do produto no instante em que ele
+ * Nome, preco e imagem sao um retrato do produto no instante em que ele
  * entrou. Nao e duplicacao por descuido: e o unico jeito de o checkout
  * perceber que o preco mudou desde entao e avisar antes de cobrar (RF-CHK-08).
  * A quantidade disponivel NAO entra no retrato — o teto e conferido contra o
@@ -48,9 +48,6 @@ public class ItemCarrinho {
     @Column(nullable = false, length = 160)
     private String nome;
 
-    @Column(nullable = false, length = 180)
-    private String slug;
-
     @Column(nullable = false, length = 255)
     private String urlImagem;
 
@@ -77,7 +74,6 @@ public class ItemCarrinho {
         this.carrinho = carrinho;
         this.produto = produto;
         this.nome = produto.getNome();
-        this.slug = produto.getSlug();
         this.urlImagem = produto.getUrlImagem();
         this.unidade = produto.getUnidade();
         this.precoEmCentavos = produto.getPrecoEmCentavos();

@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
  *
  * A lista e curta e estavel, entao sai como array puro, sem paginacao
  * (docs/models.md secao 3). O front nunca codifica essa lista: ela vem daqui.
+ *
+ * A categoria e identificada pelo idPublico, e por nada mais — nao ha slug.
  */
 public interface RepositorioDeCategoria extends JpaRepository<Categoria, Long> {
 
@@ -19,11 +21,6 @@ public interface RepositorioDeCategoria extends JpaRepository<Categoria, Long> {
 
     List<Categoria> findAllByOrderByOrdemAsc();
 
-    /** O filtro do catalogo chega por slug: e o que aparece na URL. */
-    Optional<Categoria> findBySlug(String slug);
-
-    /** O formulario do admin trabalha com id, nao com slug. */
+    /** Filtro do catalogo e formulario do admin: os dois chegam pelo id. */
     Optional<Categoria> findByIdPublico(UUID idPublico);
-
-    boolean existsBySlug(String slug);
 }

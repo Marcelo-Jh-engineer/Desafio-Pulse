@@ -66,7 +66,8 @@ public class ConfiguracaoDeSeguranca {
                         // elas existem para conseguir.
                         .requestMatchers("/api/autenticacao/**").permitAll()
                         // Catalogo publico por requisito (RF-CAT-*).
-                        .requestMatchers(HttpMethod.GET, "/api/produtos/**", "/api/categorias/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/produtos/**", "/api/categorias/**",
+                                "/api/catalogo/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

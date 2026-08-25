@@ -24,35 +24,50 @@ public interface RepositorioDeProduto extends JpaRepository<Produto, Long> {
     @EntityGraph(attributePaths = "categoria")
     Optional<Produto> findByIdPublico(UUID idPublico);
 
-    /** A pagina de produto e enderecada por slug, nunca por id. */
-    @EntityGraph(attributePaths = "categoria")
-    Optional<Produto> findBySlug(String slug);
-
-    boolean existsBySku(String sku);
-
-    boolean existsBySlug(String slug);
-
     /**
-     * Listagem publica. Produto inativo nao aparece; produto sem estoque
-     * aparece sim, marcado como indisponivel — some o botao de compra, nao o
-     * produto (docs/models.md secao 4).
+     * Listagem publica do catalogo, com os dois unicos filtros que existem:
+     * categoria (pelo id publico dela) e nome.
+     *
+     * Produto inativo nao aparece; produto sem estoque aparece sim, marcado
+     * como indisponivel — some o botao de compra, nao o produto
+     * (docs/models.md secao 4).
      *
      * Os dois filtros sao opcionais: nulo significa "nao filtre por isso", e e
      * o que permite uma consulta so atender catalogo inteiro, filtro por
-     * categoria, busca, e as duas coisas juntas.
+     * categoria, busca por nome, e as duas coisas juntas.
      *
-     * O ILIKE tem indice: o gin_trgm_ops de tb_produtos.nome atende busca por
-     * pedaco de palavra, que um B-tree comum nao atenderia.
+     * `padraoDeNome` chega PRONTO — minusculo e ja com os `%` nas pontas,
+     * montado em ServicoDeCatalogo. Nao ha normalizacao de acento: quem procura
+     * digita a palavra como ela e escrita.
+     *
+     * Montar o padrao aqui dentro, com CONCAT, nao funciona — o parametro fica
+     * sem tipo quando vem nulo, e o Postgres responde `function lower(bytea)
+     * does not exist`. Comparado direto num LIKE contra coluna de texto, o
+     * tipo se resolve sozinho.
+     *
+     * Sem clausula ESCAPE de proposito: a barra invertida ja e o escape padrao
+     * do LIKE no PostgreSQL. Declarada dentro de um text block do Java, ela e
+     * consumida antes de chegar ao Hibernate, que entao recusa a consulta por
+     * literal de escape vazio.
+     *
+     * A ORDEM E FIXA e vive aqui dentro, nao no Pageable: disponiveis
+     * primeiro, depois pela ordem da categoria, depois pelo nome. Nao ha
+     * escolha de ordenacao na API. Por isso este metodo exige um Pageable SEM
+     * Sort — o Spring Data anexaria a ordenacao dele DEPOIS deste ORDER BY, e
+     * a que vem depois nao decide nada.
      */
     @EntityGraph(attributePaths = "categoria")
     @Query("""
             SELECT p FROM Produto p
              WHERE p.ativo = TRUE
-               AND (:slugCategoria IS NULL OR p.categoria.slug = :slugCategoria)
-               AND (:busca IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :busca, '%')))
+               AND (:idCategoria IS NULL OR p.categoria.idPublico = :idCategoria)
+               AND (:padraoDeNome IS NULL OR LOWER(p.nome) LIKE :padraoDeNome)
+             ORDER BY CASE WHEN p.quantidadeEstoque > 0 THEN 0 ELSE 1 END,
+                      p.categoria.ordem,
+                      p.nome
             """)
-    Page<Produto> buscarNoCatalogo(@Param("slugCategoria") String slugCategoria,
-                                   @Param("busca") String busca,
+    Page<Produto> buscarNoCatalogo(@Param("idCategoria") UUID idCategoria,
+                                   @Param("padraoDeNome") String padraoDeNome,
                                    Pageable paginacao);
 
     /** Listagem do admin: enxerga tambem o que esta inativo. */

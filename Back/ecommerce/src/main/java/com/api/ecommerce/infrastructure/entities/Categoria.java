@@ -17,9 +17,10 @@ import org.hibernate.annotations.UpdateTimestamp;
  * Categoria do catalogo — docs/models.md secao 3.
  *
  * Existe como entidade propria, e nao como texto no produto, porque o filtro
- * precisa de ordem, de estado ativo e de um slug estavel para a URL. Desativar
- * uma categoria a tira do filtro publico sem desfazer o vinculo dos produtos
- * que ja estao nela.
+ * precisa de ordem e de estado ativo. Desativar uma categoria a tira do filtro
+ * publico sem desfazer o vinculo dos produtos que ja estao nela.
+ *
+ * O filtro do catalogo chega pelo `idPublico`: nao ha slug.
  */
 @Entity
 @Table(name = "tb_categorias")
@@ -36,10 +37,6 @@ public class Categoria {
 
     @Column(nullable = false, length = 60)
     private String nome;
-
-    /** Sem acento e em minusculas: e o que aparece na URL do filtro. */
-    @Column(nullable = false, length = 60)
-    private String slug;
 
     @Column(length = 255)
     private String descricao;
@@ -65,20 +62,18 @@ public class Categoria {
         // Exigido pelo JPA.
     }
 
-    public Categoria(String nome, String slug, String descricao, String urlIcone,
+    public Categoria(String nome, String descricao, String urlIcone,
                      short ordem, boolean ativa) {
         this.nome = nome;
-        this.slug = slug;
         this.descricao = descricao;
         this.urlIcone = urlIcone;
         this.ordem = ordem;
         this.ativa = ativa;
     }
 
-    public void alterar(String nome, String slug, String descricao, String urlIcone,
+    public void alterar(String nome, String descricao, String urlIcone,
                         short ordem, boolean ativa) {
         this.nome = nome;
-        this.slug = slug;
         this.descricao = descricao;
         this.urlIcone = urlIcone;
         this.ordem = ordem;

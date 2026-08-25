@@ -1,11 +1,8 @@
 package com.api.ecommerce.infrastructure.entities;
 
 import com.api.ecommerce.infrastructure.enums.StatusPedido;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -29,11 +26,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 /**
  * Pedido — docs/models.md secao 9.
  *
- * O pedido CONGELA tudo que o comprovante precisa: nome e preco de cada item,
- * endereco de entrega e os dados de quem comprou. Editar o produto ou o perfil
- * depois nao mexe em pedido passado, entao nada aqui e lido por juncao viva.
+ * O pedido CONGELA tudo que o comprovante precisa: nome e preco de cada item e
+ * os dados de quem comprou. Editar o produto ou o perfil depois nao mexe em
+ * pedido passado, entao nada aqui e lido por juncao viva.
  *
- * Nao ha frete: o valor do pedido e a soma das linhas, e nada mais.
+ * Nao ha frete, endereco de entrega nem numero legivel: o pedido registra o
+ * que foi comprado, por quem e por quanto. Quem o identifica e o `idPublico`,
+ * em toda parte — URL, comprovante e suporte.
  *
  * A baixa de estoque NAO acontece na criacao. Ela acontece quando o pagamento
  * e aprovado, na transicao para PAGO — enquanto o pedido esta PENDENTE o
@@ -51,10 +50,6 @@ public class Pedido {
 
     @Column(nullable = false, updatable = false)
     private UUID idPublico = UUID.randomUUID();
-
-    /** Legivel pelo cliente: "PED-2026-000123". Vem da sequencia do banco. */
-    @Column(nullable = false, updatable = false, length = 20)
-    private String numero;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
@@ -79,20 +74,6 @@ public class Pedido {
      */
     @Column(nullable = false)
     private long totalEmCentavos;
-
-    // Os nomes de coluna levam prefixo porque `numero` sozinho ja e o numero do
-    // pedido nesta mesma tabela. No JSON o endereco continua aninhado.
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "cep", column = @Column(name = "endereco_cep", nullable = false, length = 8)),
-        @AttributeOverride(name = "logradouro", column = @Column(name = "endereco_logradouro", nullable = false, length = 160)),
-        @AttributeOverride(name = "numero", column = @Column(name = "endereco_numero", nullable = false, length = 20)),
-        @AttributeOverride(name = "complemento", column = @Column(name = "endereco_complemento", length = 80)),
-        @AttributeOverride(name = "bairro", column = @Column(name = "endereco_bairro", nullable = false, length = 120)),
-        @AttributeOverride(name = "cidade", column = @Column(name = "endereco_cidade", nullable = false, length = 120)),
-        @AttributeOverride(name = "uf", column = @Column(name = "endereco_uf", nullable = false, length = 2))
-    })
-    private Endereco endereco;
 
     @Column(nullable = false, length = 120)
     private String nomeComprador;
@@ -128,12 +109,9 @@ public class Pedido {
         // Exigido pelo JPA.
     }
 
-    public Pedido(String numero, Usuario usuario, Carrinho carrinho, Endereco endereco,
-                  String chaveIdempotencia) {
-        this.numero = numero;
+    public Pedido(Usuario usuario, Carrinho carrinho, String chaveIdempotencia) {
         this.usuario = usuario;
         this.carrinho = carrinho;
-        this.endereco = endereco;
         this.chaveIdempotencia = chaveIdempotencia;
         // Retrato do comprador: o pedido nao depende do usuario atual.
         this.nomeComprador = usuario.getNome();

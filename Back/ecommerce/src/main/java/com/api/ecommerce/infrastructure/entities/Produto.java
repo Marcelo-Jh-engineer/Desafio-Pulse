@@ -22,6 +22,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 /**
  * Produto do catalogo — docs/models.md secao 4.
  *
+ * Identificado pelo `idPublico`, e por nada mais: nao ha slug nem sku. Quem
+ * enderecar um produto usa o UUID.
+ *
  * O estoque mora aqui porque so tem um caminho de escrita: a baixa na
  * aprovacao do pagamento. Nao existe entrada, ajuste manual nem tela de
  * movimentacao — e por isso tambem nao existe historico para guardar.
@@ -37,12 +40,6 @@ public class Produto {
 
     @Column(nullable = false, updatable = false)
     private UUID idPublico = UUID.randomUUID();
-
-    @Column(nullable = false, length = 40)
-    private String sku;
-
-    @Column(nullable = false, length = 180)
-    private String slug;
 
     @Column(nullable = false, length = 160)
     private String nome;
@@ -93,11 +90,9 @@ public class Produto {
         // Exigido pelo JPA.
     }
 
-    public Produto(String sku, String slug, String nome, String descricao,
+    public Produto(String nome, String descricao,
                    long precoEmCentavos, Unidade unidade, String urlImagem,
                    Categoria categoria, int quantidadeEstoque, boolean ativo) {
-        this.sku = sku;
-        this.slug = slug;
         this.nome = nome;
         this.descricao = descricao;
         this.precoEmCentavos = precoEmCentavos;
@@ -124,7 +119,7 @@ public class Produto {
         }
         if (quantidade > quantidadeEstoque) {
             throw new IllegalStateException(
-                    "Estoque insuficiente para o produto " + sku);
+                    "Estoque insuficiente para o produto " + nome);
         }
         this.quantidadeEstoque -= quantidade;
     }
@@ -137,10 +132,9 @@ public class Produto {
         this.precoEmCentavos = precoEmCentavos;
     }
 
-    public void alterarDados(String nome, String slug, String descricao, Unidade unidade,
+    public void alterarDados(String nome, String descricao, Unidade unidade,
                              String urlImagem, Categoria categoria, boolean ativo) {
         this.nome = nome;
-        this.slug = slug;
         this.descricao = descricao;
         this.unidade = unidade;
         this.urlImagem = urlImagem;

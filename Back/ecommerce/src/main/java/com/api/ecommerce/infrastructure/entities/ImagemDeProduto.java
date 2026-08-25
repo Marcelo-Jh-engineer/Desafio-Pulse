@@ -89,9 +89,12 @@ public class ImagemDeProduto {
     private String nomeArquivo;
 
     /**
-     * SHA-256 do conteudo, em hexadecimal. Serve de ETag: o navegador guarda a
-     * imagem e so a baixa de novo quando ela muda de verdade. Sem isso, cada
-     * visita ao catalogo puxaria as fotos inteiras do banco outra vez.
+     * SHA-256 do conteudo, em hexadecimal.
+     *
+     * Nao vai mais para a resposta — a rota da imagem serve os bytes direto,
+     * com Cache-Control e sem ETag. O que sobra e a identidade do arquivo:
+     * saber se dois produtos guardam a mesma foto, e conferir que os bytes
+     * lidos sao os que foram gravados.
      */
     @Column(nullable = false, length = 64)
     private String hashSha256;
@@ -131,11 +134,6 @@ public class ImagemDeProduto {
 
     public byte[] getConteudo() {
         return conteudo.clone();
-    }
-
-    /** O que vai no ETag da resposta, ja no formato que o cabecalho espera. */
-    public String etag() {
-        return "\"" + hashSha256 + "\"";
     }
 
     private static void exigirTipoAceito(String tipoConteudo) {

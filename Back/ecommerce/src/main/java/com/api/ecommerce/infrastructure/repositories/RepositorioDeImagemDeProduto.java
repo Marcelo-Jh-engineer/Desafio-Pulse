@@ -24,19 +24,6 @@ public interface RepositorioDeImagemDeProduto extends JpaRepository<ImagemDeProd
     Optional<ImagemDeProduto> findByProdutoIdPublico(UUID idPublicoDoProduto);
 
     /**
-     * So o hash e o tipo, sem os bytes.
-     *
-     * E o que responde a revalidacao de cache do navegador: ele manda o ETag
-     * que tem e pergunta se mudou. Carregar a imagem inteira do banco para
-     * concluir que ela nao mudou desfaria todo o ganho do cache.
-     */
-    @Query("""
-            SELECT i.hashSha256 FROM ImagemDeProduto i
-             WHERE i.produto.idPublico = :idPublicoDoProduto
-            """)
-    Optional<String> hashDe(@Param("idPublicoDoProduto") UUID idPublicoDoProduto);
-
-    /**
      * Quais destes produtos tem foto no banco.
      *
      * Uma consulta para a pagina inteira, e nao uma por produto: a montagem do
