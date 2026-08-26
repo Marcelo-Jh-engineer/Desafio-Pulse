@@ -24,29 +24,7 @@ assíncrono → baixa de estoque → consulta do pedido.
 
 ## Visão da arquitetura
 
-```
-                    navegador
-                        |
-                        v
-        +-------------------------------+
-        |  front  (nginx :3000)         |   SPA React; /api vai por proxy
-        +---------------+---------------+
-                        |  /api
-                        v
-        +-------------------------------+
-        |  backend (Spring Boot :8080)  |
-        |  REST + Resource Server JWT   |
-        +---+-------------+---------+---+
-            |             |         |
-   JDBC     |     proxy de login    |  AMQP (publica e consome)
-            v             v         v
-      +-----------+  +---------+  +------------------+
-      |  banco    |  |keycloak |  |  broker          |
-      | Postgres16|  |   :8081 |  |  RabbitMQ :15672 |
-      +-----------+  +---------+  +------------------+
-       ecommerce      realm         ecommerce.eventos
-       + keycloak     ecommerce     + DLX/DLQ
-```
+![Arquitetura: navegador, front nginx :3000, backend Spring Boot :8080 e, abaixo dele, banco Postgres 16 por JDBC, keycloak :8081 como proxy de login e broker RabbitMQ por AMQP](docs/Ecommerce_arch.png)
 
 Cinco containers, uma rede interna. Só quatro portas saem para o host: a SPA, a API,
 o Keycloak e o painel do RabbitMQ. A porta AMQP (5672) **não** é publicada — quem fala
@@ -79,27 +57,7 @@ com o broker é o backend, por dentro.
 
 ### Mensageria, em detalhe
 
-```
-POST /api/pedidos/{id}/pagamentos
-        |
-        | uma transação: tb_pagamentos (PENDENTE) + tb_outbox_eventos
-        v
-   [ tb_outbox_eventos ]
-        |
-        | PublicadorDeEventos, @Scheduled a cada 2 s, com publisher-confirm
-        v
-   exchange ecommerce.eventos (topic, durable)
-        |  pagamento.solicitado
-        v
-   fila pagamentos.solicitados  --3 tentativas-->  ecommerce.eventos.dlx (fanout)
-        |                                                  |
-        v                                                  v
-   ConsumidorDePagamento                           pagamentos.solicitados.dlq
-        |
-        +-- gateway decide o desfecho
-        +-- aprovado: trava produtos, baixa estoque, pedido PAGO (fim da linha)
-        +-- recusado: pedido segue PENDENTE, cliente tenta de novo
-```
+![Fluxo do pagamento assincrono: a requisicao grava tb_pagamentos PENDENTE e tb_outbox_eventos na mesma transacao; o PublicadorDeEventos leva o evento ao exchange ecommerce.eventos, que roteia por pagamento.solicitado para a fila consumida pelo ConsumidorDePagamento; tres tentativas sem sucesso caem na DLX e na DLQ](docs/Worker%20pagamentos.png)
 
 O cliente acompanha por `GET /api/pedidos/{id}/pagamentos`: enquanto `processadoEm`
 for `null`, a tentativa ainda está na fila.
