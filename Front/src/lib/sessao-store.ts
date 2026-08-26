@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Papel } from '@/types/dominio';
 import type { RespostaAutenticacao, Sessao } from '@/types/autenticacao';
 import { lerToken } from '@/lib/token';
+import { ErroDeAplicacao } from '@/lib/erros';
 import { clienteHttp, registrarFornecedorDeToken, registrarRenovadorDeSessao } from '@/lib/http';
 
 /**
@@ -32,6 +33,23 @@ const ANONIMA = {
  * latencia da propria troca.
  */
 const FOLGA_DE_RENOVACAO_EM_SEGUNDOS = 60;
+
+/**
+ * Espera antes de tentar de novo quando a renovacao falha por algo que NAO e
+ * sessao encerrada — rede oscilando, backend reiniciando, provedor lento.
+ *
+ * Menor que a folga acima de proposito: cabem algumas tentativas antes de o
+ * token atual vencer de verdade, e a pessoa nem percebe que houve tropeco.
+ */
+const ESPERA_PARA_NOVA_TENTATIVA_EM_SEGUNDOS = 15;
+
+/**
+ * Teto de tentativas seguidas. Sem ele, um backend fora do ar por horas deixaria
+ * um temporizador batendo para sempre numa aba esquecida.
+ */
+const MAXIMO_DE_TENTATIVAS = 4;
+
+let tentativasSeguidas = 0;
 
 interface EstadoSessao extends Sessao {
   entrar: (resposta: RespostaAutenticacao) => void;
@@ -98,12 +116,36 @@ async function renovarPeloCookie(): Promise<boolean> {
 
   try {
     const resposta = await clienteHttp.criar<RespostaAutenticacao>('/autenticacao/renovar');
+    tentativasSeguidas = 0;
     entrar(resposta);
     return true;
-  } catch {
-    // Cookie ausente, expirado ou revogado: acabou mesmo. Limpar aqui evita que
-    // a proxima chamada tente renovar de novo em cima do mesmo cookie morto.
-    sair();
+  } catch (erro) {
+    // **So 401 encerra a sessao.** Cookie ausente, expirado ou revogado: nao ha
+    // o que renovar, e limpar aqui evita que a proxima chamada tente de novo em
+    // cima do mesmo cookie morto.
+    //
+    // Qualquer outro erro e o servidor tropecando, e nao a sessao terminando:
+    // backend reiniciando, meio segundo de rede ruim, provedor de identidade
+    // lento. Deslogar nesses casos troca uma falha passageira por uma
+    // permanente — a pessoa perde o carrinho por causa de um soluco da rede.
+    //
+    // Erro que nem e ErroDeAplicacao — falha de rede sem resposta HTTP — entra
+    // aqui tambem: sem resposta, nao ha 401, e nao ha por que concluir que a
+    // sessao acabou.
+    const sessaoEncerrada = erro instanceof ErroDeAplicacao && erro.ehSessaoExpirada;
+
+    if (sessaoEncerrada) {
+      tentativasSeguidas = 0;
+      sair();
+      return false;
+    }
+
+    if (tentativasSeguidas < MAXIMO_DE_TENTATIVAS) {
+      tentativasSeguidas += 1;
+      agendarNovaTentativa();
+    }
+    // A sessao continua de pe: o access token atual ainda vale por algum tempo,
+    // e a proxima tentativa pode ser suficiente.
     return false;
   }
 }
@@ -134,14 +176,24 @@ function agendarRenovacao(expiraEmSegundos: number): void {
   }, segundos * 1000);
 }
 
+/** Nova tentativa depois de uma falha que nao encerrou a sessao. */
+function agendarNovaTentativa(): void {
+  cancelarRenovacaoAgendada();
+
+  renovacaoAgendada = setTimeout(() => {
+    void renovarPeloCookie();
+  }, ESPERA_PARA_NOVA_TENTATIVA_EM_SEGUNDOS * 1000);
+}
+
 /**
  * Chamada uma vez, na subida do app. Enquanto nao responde, `restaurando` fica
  * ligado e os guardas de rota seguram a decisao.
  */
 export async function restaurarSessao(): Promise<void> {
   const restaurada = await renovarPeloCookie();
-  // Em caso de falha o proprio `sair()` ja desligou a bandeira; aqui so cobre o
-  // caso de sucesso, onde `entrar()` fez o mesmo.
+  // Falhou: sai do estado de restauracao de qualquer jeito. Em 401 o `sair()`
+  // ja desligou a bandeira, mas numa falha de rede a sessao e mantida e ninguem
+  // a desligaria — e a tela ficaria no esqueleto para sempre.
   if (!restaurada) {
     useSessaoStore.setState({ restaurando: false });
   }
