@@ -18,13 +18,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface RepositorioDePedido extends JpaRepository<Pedido, Long> {
 
-    @EntityGraph(attributePaths = {"itens", "usuario"})
+    @EntityGraph(attributePaths = {"itens", "itens.produto", "usuario"})
     Optional<Pedido> findByIdPublicoAndUsuarioKeycloakSub(UUID idPublico, UUID keycloakSub);
 
     /** Reenvio do checkout: devolve o pedido que ja existe em vez de duplicar. */
-    @EntityGraph(attributePaths = {"itens", "usuario"})
+    @EntityGraph(attributePaths = {"itens", "itens.produto", "usuario"})
     Optional<Pedido> findByUsuarioKeycloakSubAndChaveIdempotencia(UUID keycloakSub, String chave);
 
-    @EntityGraph(attributePaths = "itens")
+    /**
+     * Historico do cliente, do mais recente para o mais antigo.
+     *
+     * O @EntityGraph traz as linhas e o produto de cada uma na mesma consulta —
+     * o id publico do produto vai na resposta, e sem isso seria uma consulta
+     * por item. O preco de PAGINAR com colecao carregada junto e que o Hibernate
+     * aplica o recorte em memoria: aceitavel no volume desta prova, e o motivo
+     * de o tamanho de pagina ter teto em ServicoDePedido.
+     */
+    @EntityGraph(attributePaths = {"itens", "itens.produto"})
     Page<Pedido> findByUsuarioKeycloakSubOrderByCriadoEmDesc(UUID keycloakSub, Pageable paginacao);
 }

@@ -120,8 +120,17 @@ public class Pedido {
         recalcularTotais();
     }
 
-    public void adicionar(Produto produto, int quantidade) {
-        itens.add(new ItemPedido(this, produto, quantidade));
+    /**
+     * Copia uma linha do carrinho para dentro do pedido (D2, RF-PED-03).
+     *
+     * O parametro e a LINHA, e nao o produto: e a linha que guarda o preco que
+     * a pessoa viu ao adicionar o item. Um `adicionar(Produto, int)` existiria
+     * ao lado deste como um segundo caminho — o que cobra o preco de hoje — e
+     * bastaria alguem chamar o errado para o cliente pagar valor que nunca lhe
+     * foi mostrado.
+     */
+    public void adicionar(ItemCarrinho linhaDoCarrinho) {
+        itens.add(new ItemPedido(this, linhaDoCarrinho));
         recalcularTotais();
     }
 

@@ -16,6 +16,15 @@ public class ExcecaoDeConflito extends RuntimeException {
         this.errosPorCampo = errosPorCampo;
     }
 
+    /**
+     * Conflito que nao aponta para campo nenhum — "voce ainda nao tem um
+     * carrinho", "seu carrinho esta vazio". O corpo sai so com a mensagem:
+     * `errosPorCampo` nulo e omitido pelo ErroDtoOut.
+     */
+    public ExcecaoDeConflito(String mensagem) {
+        this(mensagem, null);
+    }
+
     public Map<String, String> getErrosPorCampo() {
         return errosPorCampo;
     }

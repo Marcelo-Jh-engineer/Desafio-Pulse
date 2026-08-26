@@ -90,6 +90,18 @@ public class ExceptionMapper {
                 .body(ErroDtoOut.de(400, "Valor invalido para o parametro '" + excecao.getName() + "'."));
     }
 
+    /**
+     * Argumento que o servico recusa antes de tocar no banco — quantidade
+     * abaixo de 1, chave de idempotencia mais longa que a coluna.
+     *
+     * Sem este tratamento a excecao caia no handler generico e virava 500: a
+     * API dizia "o erro foi meu" para uma requisicao que veio errada.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErroDtoOut> argumentoInvalido(IllegalArgumentException excecao) {
+        return ResponseEntity.badRequest().body(ErroDtoOut.de(400, excecao.getMessage()));
+    }
+
     @ExceptionHandler(ExcecaoDeConflito.class)
     public ResponseEntity<ErroDtoOut> conflito(ExcecaoDeConflito excecao) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

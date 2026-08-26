@@ -76,6 +76,11 @@ public class ConfiguracaoDeSeguranca {
                         // e UX, nao autorizacao. A matriz RBAC do CLAUDE.md diz
                         // que o admin nao navega a loja, e e aqui que isso vale.
                         .requestMatchers("/api/carrinho/**").hasRole("CLIENTE")
+                        // Pedido segue o carrinho: quem nao compra, nao faz
+                        // checkout nem le pedido. Sem esta linha um token de
+                        // ADMIN cairia em `anyRequest().authenticated()` e
+                        // passaria (RNF-PED-01).
+                        .requestMatchers("/api/pedidos/**").hasRole("CLIENTE")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(conversor)));
         return http.build();
