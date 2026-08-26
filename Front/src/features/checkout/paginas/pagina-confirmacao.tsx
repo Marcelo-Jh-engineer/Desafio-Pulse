@@ -11,31 +11,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DetalhesDoPedido } from '@/features/checkout/componentes/detalhes-do-pedido';
 import { IndicadorEtapas } from '@/features/checkout/componentes/indicador-etapas';
 import { ResumoDoPagamento } from '@/features/checkout/componentes/resumo-do-pagamento';
-import { usePedido } from '@/features/checkout/hooks/use-checkout';
+import { usePagamentos, usePedido } from '@/features/checkout/hooks/use-checkout';
 import { chavesQuery } from '@/lib/chaves-query';
 import { ErroDeAplicacao } from '@/lib/erros';
 
-/**
- * Confirmação — RF-CHK-05, RF-CHK-07 e RF-CHK-13.
- *
- * **O carrinho é esvaziado somente aqui**, depois da aprovação confirmada pelo
- * servidor. Esvaziar antes deixaria o cliente sem carrinho e sem pedido caso o
- * pagamento fosse recusado.
- *
- * A tela é também o comprovante: o que está dentro de `comprovante` é o que sai
- * na impressão, e o resto da página é escondido pelo CSS de impressão.
- */
+/** Confirmação e comprovante do pedido aprovado. */
 export function PaginaConfirmacao() {
   const { id = '' } = useParams();
   const pedido = usePedido(id);
+  const pagamentos = usePagamentos(id);
   const clienteQuery = useQueryClient();
-
   const aprovado = pedido.data?.status === 'PAGO';
+  const pagamentoAprovado = pagamentos.data?.find((pagamento) => pagamento.status === 'APROVADO');
 
   useEffect(() => {
-    // Quem esvazia o carrinho e o servidor, ao converte-lo em pedido. Aqui so
-    // se descarta a copia em cache, para a tela nao seguir mostrando itens que
-    // ja viraram compra.
     if (aprovado) {
       void clienteQuery.invalidateQueries({ queryKey: chavesQuery.carrinho.atual() });
     }
@@ -55,7 +44,6 @@ export function PaginaConfirmacao() {
     );
   }
 
-  // Pedido que nao foi aprovado nao ganha tela de sucesso: mostra o estado real.
   if (!aprovado) return <Navigate to={`/pedidos/${id}`} replace />;
 
   return (
@@ -95,7 +83,6 @@ export function PaginaConfirmacao() {
         </Button>
       </div>
 
-      {/* O que sai no papel: comprovante completo, sem cromo de navegação. */}
       <Card>
         <CardContent className="space-y-6 pt-6" data-comprovante>
           <div className="hidden border-b border-border pb-4 print:block">
@@ -105,7 +92,7 @@ export function PaginaConfirmacao() {
             </p>
           </div>
 
-          <ResumoDoPagamento pedido={pedido.data} />
+          <ResumoDoPagamento pagamento={pagamentoAprovado} />
           <DetalhesDoPedido pedido={pedido.data} />
 
           <p className="hidden border-t border-border pt-4 text-xs text-muted-foreground print:block">

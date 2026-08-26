@@ -1,52 +1,64 @@
+import { useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { TituloDaPagina } from '@/components/titulo-da-pagina';
+import { Preco } from '@/components/preco';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Preco } from '@/components/preco';
 import { AvisoDivergencias } from '@/features/checkout/componentes/aviso-divergencias';
 import { IndicadorEtapas } from '@/features/checkout/componentes/indicador-etapas';
-import { useCriarPedido, useValidacaoDoCarrinho } from '@/features/checkout/hooks/use-checkout';
+import { useCriarPedido } from '@/features/checkout/hooks/use-checkout';
 import { useCarrinho } from '@/hooks/use-carrinho';
+import { chavesQuery } from '@/lib/chaves-query';
 import { ErroDeAplicacao, MENSAGENS_ERRO } from '@/lib/erros';
+import type { DivergenciaCarrinho } from '@/types/pedido';
 
-/**
- * Checkout, etapa 1: conferencia — RF-CHK-01, RF-CHK-02, RF-CHK-08.
- *
- * Nao ha formulario aqui. O pedido nao guarda endereco de entrega, e o unico
- * dado que o checkout precisava pedir era justamente ele — o que sobra e
- * conferir o que esta sendo comprado e confirmar.
- *
- * A validacao do carrinho continua sendo o portao: preco que mudou desde que o
- * item entrou bloqueia o avanco ate a pessoa ver a diferenca (RF-CHK-08).
- */
+/** Checkout: o servidor transforma o carrinho aberto no pedido. */
 export function PaginaCheckout() {
-  const { carrinho } = useCarrinho();
-  const validacao = useValidacaoDoCarrinho(carrinho.itens);
+  const { carrinho, isPending } = useCarrinho();
   const criarPedido = useCriarPedido();
+  const clienteQuery = useQueryClient();
   const navegar = useNavigate();
+  const chaveIdempotencia = useRef(crypto.randomUUID());
 
-  // Carrinho vazio no acesso direto volta para o carrinho — docs/behavior.md 8.
+  if (isPending) return <Skeleton className="h-96 w-full" />;
   if (carrinho.itens.length === 0) return <Navigate to="/carrinho" replace />;
 
-  const divergencias = validacao.data?.divergencias ?? [];
-  const bloqueado = divergencias.length > 0 || validacao.isPending;
+  const divergencias: DivergenciaCarrinho[] = carrinho.itens.flatMap((item) => {
+    const encontradas: DivergenciaCarrinho[] = [];
+
+    if (item.precoDivergiu) {
+      encontradas.push({
+        produtoId: item.produtoId,
+        nome: item.nome,
+        tipo: 'PRECO_ALTERADO',
+        precoAnteriorEmCentavos: item.precoEmCentavos,
+      });
+    }
+
+    if (item.estoqueDisponivel < item.quantidade) {
+      encontradas.push({
+        produtoId: item.produtoId,
+        nome: item.nome,
+        tipo: 'ESTOQUE_INSUFICIENTE',
+        quantidadeSolicitada: item.quantidade,
+        quantidadeDisponivel: item.estoqueDisponivel,
+      });
+    }
+
+    return encontradas;
+  });
 
   function aoConfirmar() {
-    criarPedido.mutate(
-      {
-        itens: carrinho.itens.map((item) => ({
-          produtoId: item.produtoId,
-          quantidade: item.quantidade,
-        })),
+    if (criarPedido.isPending || divergencias.length > 0) return;
+
+    criarPedido.mutate(chaveIdempotencia.current, {
+      onSuccess: (pedido) => {
+        void clienteQuery.invalidateQueries({ queryKey: chavesQuery.carrinho.atual() });
+        void navegar(`/checkout/pagamento?pedido=${encodeURIComponent(pedido.id)}`);
       },
-      {
-        onSuccess: (pedido) => {
-          // O pedido nasce PENDENTE, e o pagamento referencia so o id dele.
-          void navegar(`/checkout/pagamento?pedido=${pedido.id}`);
-        },
-      },
-    );
+    });
   }
 
   const erroAoCriar =
@@ -61,16 +73,12 @@ export function PaginaCheckout() {
       <TituloDaPagina tituloDocumento="Checkout">Finalizar compra</TituloDaPagina>
       <IndicadorEtapas atual={1} />
 
-      {validacao.isPending ? (
-        <Skeleton className="h-20 w-full" />
-      ) : (
-        <AvisoDivergencias
-          divergencias={divergencias}
-          aoAjustar={() => {
-            void navegar('/carrinho');
-          }}
-        />
-      )}
+      <AvisoDivergencias
+        divergencias={divergencias}
+        aoAjustar={() => {
+          void navegar('/carrinho');
+        }}
+      />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <Card>
@@ -86,8 +94,8 @@ export function PaginaCheckout() {
 
             <h2 className="text-lg font-semibold">Confira seu pedido</h2>
             <p className="text-sm text-muted-foreground">
-              Revise os itens ao lado. Ao confirmar, o pedido é criado e você segue para o
-              pagamento.
+              O pedido será criado a partir deste carrinho. O servidor fará a validação final de
+              disponibilidade antes de confirmar.
             </p>
 
             <Button
@@ -95,7 +103,7 @@ export function PaginaCheckout() {
               variante="acao"
               tamanho="grande"
               className="w-full"
-              disabled={bloqueado || criarPedido.isPending}
+              disabled={divergencias.length > 0 || criarPedido.isPending}
               aria-busy={criarPedido.isPending}
               onClick={aoConfirmar}
             >

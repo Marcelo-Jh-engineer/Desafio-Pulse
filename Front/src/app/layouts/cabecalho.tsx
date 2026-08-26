@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Moon, Sun, User } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, LogOut, Moon, Sun, User } from 'lucide-react';
 import { Dentinho } from '@/components/dentinho';
 import { Permitir } from '@/components/permitir';
 import { ContadorCarrinho } from '@/components/contador-carrinho';
@@ -52,6 +52,13 @@ export function Cabecalho() {
               Catálogo
             </ItemDeNavegacao>
           )}
+
+          <Permitir papeis={['CLIENTE']}>
+            <ItemDeNavegacao para="/pedidos">
+              <ClipboardList aria-hidden="true" className="inline size-4 md:mr-1" />
+              <span className="sr-only md:not-sr-only">Meus pedidos</span>
+            </ItemDeNavegacao>
+          </Permitir>
 
           <Permitir papeis={['ADMIN']}>
             <ItemDeNavegacao para="/admin/produtos">

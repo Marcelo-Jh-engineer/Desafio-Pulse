@@ -1,47 +1,36 @@
 import { clienteHttp } from '@/lib/http';
-import type {
-  Pedido,
-  RequisicaoPagamento,
-  RequisicaoPedido,
-  ResultadoPagamento,
-  ValidacaoCarrinho,
-} from '@/types/pedido';
-import type { ItemCarrinho } from '@/types/carrinho';
+import type { Pagina } from '@/types/api';
+import type { Pagamento, Pedido, RequisicaoPagamento } from '@/types/pedido';
 
 /**
  * Unico ponto que conhece os caminhos de pedido e pagamento.
  *
- * Regra de seguranca (RNF-SEC-02): dado de cartao viaja **so no corpo** do
- * POST de pagamento. Nunca em query string, nunca em chave de cache, nunca em
- * log — por isso o pagamento e mutation, jamais query.
+ * O backend recebe somente o metodo escolhido. Dados de cartao nao fazem parte
+ * do contrato, nao entram em cache e nao sao enviados pela aplicacao.
  */
 
-export function validarCarrinho(itens: ItemCarrinho[]): Promise<ValidacaoCarrinho> {
-  return clienteHttp.criar<ValidacaoCarrinho>('/carrinho/validacao', {
-    itens: itens.map((item) => ({
-      produtoId: item.produtoId,
-      quantidade: item.quantidade,
-      precoEmCentavos: item.precoEmCentavos,
-    })),
+export function criarPedido(chaveIdempotencia: string): Promise<Pedido> {
+  return clienteHttp.criar<Pedido>('/pedidos', undefined, {
+    headers: { 'Idempotency-Key': chaveIdempotencia },
   });
-}
-
-export function criarPedido(dados: RequisicaoPedido): Promise<Pedido> {
-  return clienteHttp.criar<Pedido>('/pedidos', dados);
 }
 
 export function buscarPedido(id: string): Promise<Pedido> {
   return clienteHttp.obter<Pedido>(`/pedidos/${encodeURIComponent(id)}`);
 }
 
-export function pagar(dados: RequisicaoPagamento): Promise<ResultadoPagamento> {
-  return clienteHttp.criar<ResultadoPagamento>('/pagamentos', dados);
+export function listarPedidos(pagina: number, tamanho: number): Promise<Pagina<Pedido>> {
+  return clienteHttp.obter<Pagina<Pedido>>('/pedidos', {
+    params: { pagina: String(pagina), tamanho: String(tamanho) },
+  });
 }
 
-/**
- * Confirmação do Pix. No mundo real quem avisa é o banco, por webhook; aqui o
- * gatilho é explícito para o fluxo ser demonstrável sem serviço externo.
- */
-export function confirmarPix(dados: { pedidoId: string }): Promise<ResultadoPagamento> {
-  return clienteHttp.criar<ResultadoPagamento>('/pagamentos/pix/confirmacao', dados);
+export function pagar({ pedidoId, metodo }: RequisicaoPagamento): Promise<Pagamento> {
+  return clienteHttp.criar<Pagamento>(`/pedidos/${encodeURIComponent(pedidoId)}/pagamentos`, {
+    metodo,
+  });
+}
+
+export function listarPagamentos(pedidoId: string): Promise<Pagamento[]> {
+  return clienteHttp.obter<Pagamento[]>(`/pedidos/${encodeURIComponent(pedidoId)}/pagamentos`);
 }

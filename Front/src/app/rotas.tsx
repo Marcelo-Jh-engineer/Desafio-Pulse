@@ -116,6 +116,19 @@ export const rotas = createBrowserRouter([
         },
       },
       {
+        path: 'pedidos',
+        lazy: async () => {
+          const { PaginaPedidos } = await import('@/features/checkout/paginas/pagina-pedidos');
+          return {
+            Component: () => (
+              <RotaProtegida papeis={['CLIENTE']}>
+                <PaginaPedidos />
+              </RotaProtegida>
+            ),
+          };
+        },
+      },
+      {
         path: 'pedidos/:id/confirmacao',
         lazy: async () => {
           const { PaginaConfirmacao } =

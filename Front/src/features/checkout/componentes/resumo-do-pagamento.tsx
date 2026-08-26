@@ -1,17 +1,9 @@
 import { CreditCard, QrCode } from 'lucide-react';
 import { Preco } from '@/components/preco';
 import { ROTULO_METODO_PAGAMENTO } from '@/types/dominio';
-import type { Pedido } from '@/types/pedido';
+import type { Pagamento } from '@/types/pedido';
 
-/**
- * Resumo da forma de pagamento — RF-CHK-13.
- *
- * Vive separado dos itens porque responde outra pergunta: os itens dizem **o
- * que** foi comprado, isto diz **como** foi pago. No comprovante impresso, é a
- * parte que o cliente confere contra a fatura do cartão ou o extrato do Pix.
- */
-export function ResumoDoPagamento({ pedido }: { pedido: Pedido }) {
-  const pagamento = pedido.pagamento;
+export function ResumoDoPagamento({ pagamento }: { pagamento: Pagamento | undefined }) {
   if (!pagamento) return null;
 
   const Icone = pagamento.metodo === 'PIX' ? QrCode : CreditCard;
@@ -31,41 +23,17 @@ export function ResumoDoPagamento({ pedido }: { pedido: Pedido }) {
           </dd>
         </div>
 
-        {pagamento.metodo === 'CARTAO' ? (
-          <>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Cartão</dt>
-              {/* Só os quatro últimos: o número completo nunca é guardado. */}
-              <dd className="numeros-tabulares">•••• {pagamento.finalDoCartao}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Parcelamento</dt>
-              <dd>
-                {pagamento.parcelas === 1 ? (
-                  'À vista'
-                ) : (
-                  <>
-                    {pagamento.parcelas}× de{' '}
-                    <Preco
-                      centavos={pagamento.valorParcelaEmCentavos ?? 0}
-                      className="text-sm font-normal"
-                    />
-                  </>
-                )}
-              </dd>
-            </div>
-          </>
+        {pagamento.processadoEm ? (
+          <div className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">Data</dt>
+            <dd>{new Date(pagamento.processadoEm).toLocaleString('pt-BR')}</dd>
+          </div>
         ) : null}
-
-        <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">Data</dt>
-          <dd>{new Date(pagamento.pagoEm).toLocaleString('pt-BR')}</dd>
-        </div>
 
         <div className="flex items-baseline justify-between gap-2 pt-2">
           <dt className="font-semibold">Valor pago</dt>
           <dd>
-            <Preco centavos={pedido.totalEmCentavos} className="text-xl" />
+            <Preco centavos={pagamento.valorEmCentavos} className="text-xl" />
           </dd>
         </div>
       </dl>

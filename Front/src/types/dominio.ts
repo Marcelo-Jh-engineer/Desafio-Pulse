@@ -15,11 +15,10 @@ export type StatusPedido = 'PENDENTE' | 'PAGO' | 'FALHOU' | 'CANCELADO';
 /**
  * Desfecho do pagamento simulado.
  *
- * `AGUARDANDO` existe por causa do Pix: a cobranca e gerada na hora, mas o
- * pagamento so acontece depois, no aplicativo do banco. Cartao nunca passa por
- * este estado — resolve na mesma requisicao.
+ * `PENDENTE` espera o consumidor da fila; `AGUARDANDO` fica reservado ao Pix
+ * quando houver confirmacao externa do banco.
  */
-export type StatusPagamento = 'APROVADO' | 'RECUSADO' | 'AGUARDANDO';
+export type StatusPagamento = 'PENDENTE' | 'APROVADO' | 'RECUSADO' | 'AGUARDANDO';
 
 /** Forma de pagamento escolhida no checkout — RF-CHK-10. */
 export type MetodoPagamento = 'CARTAO' | 'PIX';

@@ -1,4 +1,4 @@
-import type { StatusPagamento, StatusPedido, Unidade } from '@/types/dominio';
+import type { MetodoPagamento, StatusPagamento, StatusPedido, Unidade } from '@/types/dominio';
 
 /** Linha do pedido — congelada no momento da compra. */
 export interface ItemPedido {
@@ -10,70 +10,38 @@ export interface ItemPedido {
   totalLinhaEmCentavos: number;
 }
 
-export type MetodoPagamento = 'CARTAO' | 'PIX';
-
-/** O que o comprovante mostra sobre a forma de pagamento. */
-export interface ResumoPagamento {
-  metodo: MetodoPagamento;
-  /** Só em cartão: bandeira fictícia e os quatro últimos dígitos. */
-  finalDoCartao?: string;
-  parcelas?: number;
-  /** Valor de cada parcela, derivado do total. */
-  valorParcelaEmCentavos?: number;
-  pagoEm: string;
-}
-
 /**
  * Pedido — docs/models.md secao 9.
  *
- * **Congela** nome, preco e dados do comprador: editar o produto ou o perfil
- * depois nao altera pedidos passados.
+ * **Congela** nome e preco dos itens: editar o produto depois nao altera
+ * pedidos passados.
  */
 export interface Pedido {
   id: string;
   status: StatusPedido;
   itens: ItemPedido[];
   totalEmCentavos: number;
-  nomeComprador: string;
-  emailComprador: string;
-  /** Snapshot do login do comprador. Exibido mascarado quando é documento. */
-  loginComprador: string;
   criadoEm: string;
-  pagoEm?: string;
-  /** Preenchido quando o pagamento é aprovado — alimenta o comprovante. */
-  pagamento?: ResumoPagamento;
+  pagoEm: string | null;
   /** Presente quando o pagamento foi recusado. */
-  motivoRecusa?: string;
+  motivoRecusa: string | null;
 }
 
-export interface RequisicaoPedido {
-  itens: { produtoId: string; quantidade: number }[];
-}
-
-/**
- * Pagamento com cartão — docs/models.md secao 10.
- *
- * **Nunca persistido no front**: vive so no estado do formulario e e descartado
- * no envio. Nao entra em store, storage, cache nem log.
- */
-export interface PagamentoComCartao {
-  metodo: 'CARTAO';
+export interface RequisicaoPagamento {
   pedidoId: string;
-  numeroCartao: string;
-  nomeTitular: string;
-  /** "MM/AA" */
-  validade: string;
-  cvv: string;
-  parcelas: number;
+  metodo: MetodoPagamento;
 }
 
-/** Pagamento por Pix: nao ha dado sensivel, so a intencao de gerar a cobranca. */
-export interface PagamentoComPix {
-  metodo: 'PIX';
-  pedidoId: string;
+/** Tentativa de pagamento devolvida pela API. */
+export interface Pagamento {
+  id: string;
+  metodo: MetodoPagamento;
+  status: StatusPagamento;
+  valorEmCentavos: number;
+  motivoRecusa: string | null;
+  criadoEm: string;
+  processadoEm: string | null;
 }
-
-export type RequisicaoPagamento = PagamentoComCartao | PagamentoComPix;
 
 /** Cobrança Pix gerada pelo servidor, com prazo para pagar. */
 export interface CobrancaPix {
@@ -86,15 +54,7 @@ export interface CobrancaPix {
   validadeEmSegundos: number;
 }
 
-export interface ResultadoPagamento {
-  pedidoId: string;
-  status: StatusPagamento;
-  /** Presente somente quando o status e RECUSADO. */
-  motivoRecusa?: string;
-  /** Presente somente quando o status e AGUARDANDO e o metodo e Pix. */
-  cobrancaPix?: CobrancaPix;
-  processadoEm: string;
-}
+export type ResultadoPagamento = Pagamento;
 
 /** Divergencia encontrada ao revalidar o carrinho no checkout — RF-CHK-08. */
 export interface DivergenciaCarrinho {

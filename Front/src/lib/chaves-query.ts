@@ -26,7 +26,11 @@ export const chavesQuery = {
   },
   pedidos: {
     raiz: () => ['pedidos'] as const,
+    lista: (pagina: number, tamanho: number) => ['pedidos', 'lista', pagina, tamanho] as const,
     porId: (id: string) => ['pedidos', id] as const,
+  },
+  pagamentos: {
+    doPedido: (pedidoId: string) => ['pedidos', pedidoId, 'pagamentos'] as const,
   },
   /**
    * A validacao depende do conteudo do carrinho, entao a chave carrega os ids e
