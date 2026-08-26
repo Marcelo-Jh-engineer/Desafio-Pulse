@@ -91,6 +91,28 @@ services:
       retries: 30
       start_period: 60s
 
+  broker:
+    # RabbitMQ com o painel ligado: e por ele que se confere fila, binding e
+    # DLQ sem precisar de cliente instalado na maquina.
+    image: rabbitmq:3-management-alpine
+    container_name: pulse-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      # O backend so pode subir depois que o broker aceita conexao: sem isso a
+      # aplicacao sobe, tenta declarar as filas e reclama no log ate acertar.
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    ports:
+      # Painel. A porta 5672 (AMQP) NAO e publicada: quem fala com o broker e o
+      # backend, pela rede interna do compose.
+      - '${RABBITMQ_PAINEL_PORT}:15672'
+
   backend:
     build:
       context: ./Back/ecommerce
@@ -101,6 +123,8 @@ services:
       banco:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      broker:
         condition: service_healthy
     environment:
       # Nome do servico, nao localhost: dentro da rede do compose cada container
@@ -124,6 +148,12 @@ services:
       # e tudo sai da mesma origem, entao isto so vale para quem chamar a API
       # direto — Swagger, curl ou o front em `npm run dev`.
       URL_DO_FRONT: ${URL_DO_FRONT}
+
+      # Nome do servico, nao localhost — mesma razao do banco e do Keycloak.
+      RABBITMQ_HOST: broker
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     ports:
       # Exposta para o Swagger e para teste direto com curl. O front nao usa
       # esta porta: ele fala com o nginx, que fala com o backend pela rede
