@@ -92,13 +92,13 @@ Front/src/
 
 | Decisão | Por quê |
 |---|---|
-| PostgreSQL, não MySQL nem H2 | O schema depende de recursos que nem todo banco tem: índice **único parcial**, `JSONB`. `uk_pagamento_aprovado_por_pedido` é `UNIQUE (pedido_id) WHERE status = 'APROVADO'` — a última barreira contra cobrança dupla, e com ela contra baixa dupla de estoque. Sem índice parcial isso viraria checagem só em código, que não segura corrida. |
+| PostgreSQL, não MySQL nem H2 | O schema depende de recursos que nem todo banco tem: índice **único parcial**, `JSONB`. `uk_pagamento_aprovado_por_pedido` é `UNIQUE (pedido_id) WHERE status = 'APROVADO'` — a última barreira contra cobrança dupla, e com ela contra baixa dupla de estoque. Sem índice parcial isso viraria checagem só em código, que não segura corrida. | Controle Transacional.
 | Locale **ICU `pt-BR`** no `initdb` 
 | **Flyway** com `ddl-auto=validate` | O schema é do Flyway; o Hibernate só confere se o mapeamento bate. `ddl-auto=update` esconderia divergência entre o código e o que está no banco. |
 | Dinheiro em **inteiro de centavos** | `BIGINT` no banco, `long` no Java, `number` no front. Ponto flutuante para dinheiro erra por arredondamento, e o erro só aparece depois, na soma. Por isso, não foi adotador Decimal do Postgres com BigDecimal no Java, para evitar arrendondamentos |
 | **Lock pessimista**, não otimista | `SELECT ... FOR UPDATE` na baixa de estoque e no processamento do pagamento. Com lock otimista a segunda transação descobre o conflito só no commit e precisa de política de retentativa; aqui ela espera e lê o valor certo. Os produtos são travados **em ordem de id** para não formar ciclo de espera entre dois pedidos com os mesmos itens(Ou Deadlock). |
 | Total do carrinho em **método Java**, não `@Formula` | `@Formula` só vale depois de um `SELECT`. Como os testes não usam banco (decisão adiante), o total ficaria zero e sem como ser verificado. Além disso, gravar o valor direto no banco poderia causar inconsistências no carrinhos e tratamentos|
-| Imagem em **`BYTEA`**, não em disco | São poucos SVGs de catálogo. |
+| Imagem em **`BYTEA`**, não em disco | São poucos SVGs de catálogo. Imagens armazenadas direto no banco |
 
 ### Autenticação — Keycloak 26
 
@@ -121,7 +121,7 @@ Front/src/
 | Exchange **topic**, não direct | As chaves são hierárquicas (`pedido.criado`, `pagamento.solicitado`). Quem quiser ouvir `pedido.*` inteiro cria um binding, sem tocar em quem publica. |
 | DLX **fanout** | O que chega lá já falhou; ela não decide nada. Cada fila de trabalho aponta para a própria DLQ pelo binding — rotear por chave repetiria, no caminho do erro, uma decisão já tomada no caminho feliz. |
 | `default-requeue-rejected=false` com 3 tentativas e backoff | Sem as duas peças juntas, a mensagem envenenada volta para a fila e gira para sempre, com o problema invisível. Assim ela para na DLQ, onde dá para olhar. |
-| Topologia declarada **em código** (`ConfiguracaoDoRabbit`) | Fila criada à mão no painel some no primeiro `docker compose down -v` e ninguém lembra de refazer. |
+| Topologia declarada **em código** (`ConfiguracaoDoRabbit`) |
 | Consumidor **idempotente** | Ele trava a linha e, se ela não estiver mais `PENDENTE`, apenas registra e dá ack. Reentrega não cobra duas vezes. |
 | Gateway de pagamento **fake**, atrás de uma interface | `GatewayDePagamento` existe para o dia em que houver gateway de verdade: troca-se a implementação sem tocar no serviço. A regra da implementação fake é determinística — ver [Exemplos](#41-pagar-assíncrono). |
 
