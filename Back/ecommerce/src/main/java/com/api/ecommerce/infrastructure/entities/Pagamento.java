@@ -19,24 +19,6 @@ import java.util.UUID;
 import lombok.Getter;
 import org.hibernate.annotations.CreationTimestamp;
 
-/**
- * Desfecho de uma tentativa de pagamento — docs/models.md secao 10.
- *
- * Guarda o RESULTADO, nao o meio. Numero de cartao, parcelamento e codigo de
- * cobranca Pix sao assunto do gateway; do lado de ca fica apenas o que o pedido
- * precisa para mudar de estado: por qual caminho foi tentado, quanto, quando e
- * como terminou.
- *
- * Essa divisao tambem e a medida de seguranca sobre o cartao. Nao existe aqui
- * campo onde caiba numero, validade ou CVV — e a ausencia e proposital, nao
- * esquecimento: sem gateway proprio nao ha tokenizacao, e a unica forma segura
- * de guardar o numero e nao guardar.
- *
- * Cartao resolve na mesma requisicao: aprova ou recusa. Pix nao — a cobranca
- * nasce na hora e quem paga e o aplicativo do banco, depois. Dai AGUARDANDO e
- * o prazo em `expiraEm`, o unico dado do Pix que interessa deste lado: sem ele
- * a cobranca ficaria pendente para sempre.
- */
 @Entity
 @Table(name = "tb_pagamentos")
 @Getter
@@ -70,7 +52,10 @@ public class Pagamento {
     @Column(length = 160)
     private String motivoRecusa;
 
-    @Column(nullable = false)
+    /**
+     * Quando o consumidor deu o desfecho. NULO enquanto a tentativa espera na
+     * fila — e e por esse nulo que o cliente sabe que ainda nao ha resposta.
+     */
     private Instant processadoEm;
 
     @CreationTimestamp
@@ -90,15 +75,36 @@ public class Pagamento {
         this.processadoEm = processadoEm;
     }
 
-    public static Pagamento aprovado(Pedido pedido, MetodoPagamento metodo, Instant quando) {
-        return new Pagamento(pedido, metodo, StatusPagamento.APROVADO, quando);
+
+    public static Pagamento solicitado(Pedido pedido, MetodoPagamento metodo) {
+        return new Pagamento(pedido, metodo, StatusPagamento.PENDENTE, null);
     }
 
-    public static Pagamento recusado(Pedido pedido, MetodoPagamento metodo,
-                                     String motivo, Instant quando) {
-        Pagamento pagamento = new Pagamento(pedido, metodo, StatusPagamento.RECUSADO, quando);
-        pagamento.motivoRecusa = motivo;
-        return pagamento;
+    /** O gateway aprovou. Quem chama baixa o estoque na mesma transacao. */
+    public void aprovar(Instant quando) {
+        exigirTransicaoPara(StatusPagamento.APROVADO);
+        this.status = StatusPagamento.APROVADO;
+        this.processadoEm = quando;
+        this.motivoRecusa = null;
+    }
+
+    /**
+     * O gateway recusou, ou o estoque nao cobriu a compra.
+     *
+     * O motivo gravado aqui e o DESTA tentativa. O do pedido, quando ele e
+     * cancelado, e outro campo e outro fato: um diz por que esta cobranca nao
+     * passou, o outro por que a compra acabou.
+     */
+    public void recusar(String motivo, Instant quando) {
+        exigirTransicaoPara(StatusPagamento.RECUSADO);
+        this.status = StatusPagamento.RECUSADO;
+        this.motivoRecusa = motivo;
+        this.processadoEm = quando;
+    }
+
+    /** Ainda sem desfecho: o consumidor nao pegou, ou o Pix nao foi pago. */
+    public boolean estaEmAberto() {
+        return status.estaEmAberto();
     }
 
     /** Cobranca Pix criada: existe, tem prazo, e ninguem pagou ainda. */
@@ -112,15 +118,12 @@ public class Pagamento {
     /** O aplicativo do banco confirmou dentro do prazo. */
     public void confirmar(Instant quando) {
         exigirEspera();
-        this.status = StatusPagamento.APROVADO;
-        this.processadoEm = quando;
+        aprovar(quando);
     }
 
     public void expirar(Instant quando) {
         exigirEspera();
-        this.status = StatusPagamento.RECUSADO;
-        this.motivoRecusa = "O prazo do Pix expirou";
-        this.processadoEm = quando;
+        recusar("O prazo do Pix expirou", quando);
     }
 
     public boolean venceu(Instant agora) {
@@ -130,6 +133,19 @@ public class Pagamento {
     private void exigirEspera() {
         if (status != StatusPagamento.AGUARDANDO) {
             throw new IllegalStateException("Pagamento ja resolvido: " + status);
+        }
+    }
+
+    /**
+     * A transicao passa pelo enum, e nao por um `if` aqui dentro.
+     *
+     * E esta guarda que torna a reentrega do broker inofensiva: uma segunda
+     * entrega da mesma mensagem encontra APROVADO e nao tem para onde ir.
+     */
+    private void exigirTransicaoPara(StatusPagamento destino) {
+        if (!status.podeIrPara(destino)) {
+            throw new IllegalStateException(
+                    "Transicao invalida de " + status + " para " + destino);
         }
     }
 
