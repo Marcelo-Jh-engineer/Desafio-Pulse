@@ -1,25 +1,17 @@
 # ---------------------------------------------------------------
 # Ferramental de agente (Claude Code)
 # ---------------------------------------------------------------
-# Skills sao instaladas por maquina/usuario, nao fazem parte do projeto.
-.claude/skills/
-**/.claude/skills/
-
-# Preferencias locais de cada dev. O settings.json compartilhado fica versionado.
-.claude/settings.local.json
-**/.claude/settings.local.json
-.claude/*.local.json
-.claude/plans/
-.claude/todos/
-.claude/shell-snapshots/
-.claude/statsig/
-.claude/projects/
+# Configuracao do agente e por maquina, nao do projeto: skill instalada,
+# preferencia local, plano, transcricao de sessao. Nada disso descreve o
+# sistema, e a transcricao ainda carrega caminho absoluto da maquina.
+.claude/
+**/.claude/
 
 # Outros agentes / assistentes
 .cursor/
 .aider*
 .windsurfrules
-
+.vscode/
 # ---------------------------------------------------------------
 # Node / frontend
 # ---------------------------------------------------------------
@@ -68,10 +60,7 @@ pnpm-debug.log*
 # ---------------------------------------------------------------
 # Editor
 # ---------------------------------------------------------------
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/launch.json
+.vscode/
 .idea/
 *.iml
 *.suo
@@ -90,4 +79,5 @@ desktop.ini
 
 # Ambiente do backend: contem senha do banco.
 .env
-.
+.env.example
+.vscode/

@@ -688,6 +688,7 @@ O front não tem testes automatizados; a verificação é `verificar-tipos`, `li
 | `docs/models.md` | Tipos, contratos de API, regras de negócio |
 | `docs/behavior.md` | Comportamento de cada tela, fluxos, estados, casos de borda |
 | `docs/design.md` | Paleta, tokens, tipografia, componentes, mascote |
+| `docs/uso-de-ia.md` | Relatório do processo com IA: modelo, ferramentas, prompts, correções |
 | `CLAUDE.md` | Convenções de código e decisões registradas |
 
 ---
