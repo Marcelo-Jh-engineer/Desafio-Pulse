@@ -156,7 +156,7 @@ class ServicoDePagamentoTest {
     @Test
     @DisplayName("solicitar grava a tentativa PENDENTE e o evento, na mesma transacao")
     void solicitarGravaPagamentoEEvento() {
-        // 2 x 649 = 1298, final 8: o gateway aprovaria — mas nao e chamado aqui.
+        // 2 x 649 = 1298, final 8: o gateway recusaria — mas nao e chamado aqui.
         Pedido pedido = pedidoCom(produto(1L, "Banana Prata", 649, 84), 2);
 
         PagamentoDtoOut dto = servico.solicitar(SUB, pedido.getIdPublico(), MetodoPagamento.CARTAO);
@@ -258,8 +258,9 @@ class ServicoDePagamentoTest {
     @Test
     @DisplayName("reentrega de tentativa ja resolvida nao processa nada")
     void reentregaNaoReprocessa() {
+        // 4 x 649 = 2596, final 6: o gateway aprova.
         Produto banana = produto(1L, "Banana Prata", 649, 84);
-        Pedido pedido = pedidoCom(banana, 2);
+        Pedido pedido = pedidoCom(banana, 4);
         Pagamento pagamento = pagamentoPendenteDe(pedido);
 
         // Primeira entrega: aprova e baixa o estoque.
@@ -267,14 +268,14 @@ class ServicoDePagamentoTest {
         servico.processar(pagamento.getIdPublico());
 
         assertThat(pagamento.getStatus()).isEqualTo(StatusPagamento.APROVADO);
-        assertThat(banana.getQuantidadeEstoque()).isEqualTo(82);
+        assertThat(banana.getQuantidadeEstoque()).isEqualTo(80);
 
         // Segunda entrega da MESMA mensagem — o RabbitMQ entrega ao menos uma
         // vez. Sem a checagem de status, o estoque sairia duas vezes para uma
         // venda so.
         servico.processar(pagamento.getIdPublico());
 
-        assertThat(banana.getQuantidadeEstoque()).isEqualTo(82);
+        assertThat(banana.getQuantidadeEstoque()).isEqualTo(80);
         verify(gateway, org.mockito.Mockito.times(1)).processar(anyLong());
     }
 
@@ -293,7 +294,7 @@ class ServicoDePagamentoTest {
 
     // T11 e T14
     @Test
-    @DisplayName("aprovacao debita o estoque, paga o pedido e enfileira PEDIDO_PAGO")
+    @DisplayName("aprovacao debita o estoque e paga o pedido, sem enfileirar nada")
     void aprovacaoDebitaEPagaOPedido() {
         // 4 x 649 = 2596, final 6: o gateway aprova.
         Produto banana = produto(1L, "Banana Prata", 649, 84);
@@ -310,9 +311,10 @@ class ServicoDePagamentoTest {
         assertThat(pedido.getStatus()).isEqualTo(StatusPedido.PAGO);
         assertThat(pedido.getPagoEm()).isNotNull();
 
-        EventoOutbox evento = eventoGravado();
-        assertThat(evento.getTipo()).isEqualTo("PEDIDO_PAGO");
-        assertThat(evento.getConteudo()).contains(pedido.getIdPublico().toString());
+        // O pagamento aprovado se encerra no proprio registro: ninguem pediu
+        // evento de pedido pago, e enfileirar um so porque a fila existe
+        // criaria mensagem que nenhum consumidor le.
+        verify(outbox, never()).save(any());
     }
 
     // T12 e T13

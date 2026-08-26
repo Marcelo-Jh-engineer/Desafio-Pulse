@@ -5,7 +5,6 @@ import com.api.ecommerce.infrastructure.exception.ExcecaoDeEstoqueInsuficiente;
 import org.springframework.stereotype.Service;
 
 /**
- * Diz se da para levar tanto de um produto.
  *
  * Classe separada de proposito: a mesma pergunta e feita ao adicionar item no
  * carrinho, ao revalidar o carrinho no checkout e ao aprovar o pagamento. Se
@@ -24,9 +23,6 @@ public class ServicoDeEstoque {
     /**
      * Recusa quando nao ha estoque para a quantidade pedida.
      *
-     * A comparacao e `estoque >= quantidade`, e nao `>`: com `>` a ultima
-     * unidade nunca poderia ser vendida — estoque 1 recusaria quantidade 1, e
-     * o produto ficaria preso na prateleira para sempre.
      */
     public void exigirDisponibilidade(Produto produto, int quantidade) {
         if (quantidade < 1) {

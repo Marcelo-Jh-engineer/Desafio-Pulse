@@ -5,11 +5,11 @@ import com.api.ecommerce.infrastructure.entities.Carrinho;
 import com.api.ecommerce.infrastructure.entities.ItemCarrinho;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.entities.Usuario;
-import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeCarrinho;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeProduto;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeUsuario;
+import com.api.ecommerce.utils.UsuarioUtils;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -63,7 +63,7 @@ public class ServicoDeCarrinho {
      */
     @Transactional
     public CarrinhoDtoOut criar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
-        Usuario dono = exigirUsuario(sub);
+        Usuario dono = UsuarioUtils.getUser(usuarios, sub);
 
         Carrinho carrinho = carrinhos.abertoDe(sub)
                 .orElseGet(() -> carrinhos.save(new Carrinho(dono)));
@@ -84,7 +84,7 @@ public class ServicoDeCarrinho {
      */
     @Transactional
     public CarrinhoDtoOut adicionar(UUID sub, UUID idPublicoDoProduto, int quantidade) {
-        exigirUsuario(sub);
+        UsuarioUtils.getUser(usuarios, sub);
         return adicionarNoCarrinho(carrinhoAbertoDe(sub), idPublicoDoProduto, quantidade);
     }
 
@@ -101,7 +101,7 @@ public class ServicoDeCarrinho {
             throw new IllegalArgumentException("Quantidade a remover precisa ser pelo menos 1");
         }
 
-        exigirUsuario(sub);
+        UsuarioUtils.getUser(usuarios, sub);
         Carrinho carrinho = carrinhoAbertoDe(sub);
         Produto produto = exigirProduto(idPublicoDoProduto);
 
@@ -120,7 +120,7 @@ public class ServicoDeCarrinho {
     /** O carrinho aberto de quem pediu, com as linhas e o total. */
     @Transactional(readOnly = true)
     public CarrinhoDtoOut ver(UUID sub) {
-        exigirUsuario(sub);
+        UsuarioUtils.getUser(usuarios, sub);
         return montar(carrinhoAbertoDe(sub));
     }
 
@@ -172,18 +172,6 @@ public class ServicoDeCarrinho {
         return CarrinhoDtoOut.de(carrinho, enderecoDaImagem.urlsDe(daLinha));
     }
 
-    /**
-     * Carrinho e de gente autenticada. Token valido cujo `sub` nao tem usuario
-     * espelhado nao serve: sem dono nao ha a quem pertencer, e a coluna
-     * `usuario_id` e NOT NULL justamente por isso.
-     */
-    private Usuario exigirUsuario(UUID sub) {
-        if (sub == null) {
-            throw new ExcecaoDeAutenticacao("Sessao ausente ou expirada");
-        }
-        return usuarios.findByKeycloakSub(sub)
-                .orElseThrow(() -> new ExcecaoDeAutenticacao("Sessao ausente ou expirada"));
-    }
 
     private Carrinho carrinhoAbertoDe(UUID sub) {
         return carrinhos.abertoDe(sub)

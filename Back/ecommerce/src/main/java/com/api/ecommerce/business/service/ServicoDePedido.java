@@ -8,13 +8,13 @@ import com.api.ecommerce.infrastructure.entities.ItemCarrinho;
 import com.api.ecommerce.infrastructure.entities.Pedido;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.entities.Usuario;
-import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
 import com.api.ecommerce.infrastructure.enums.TipoDeEvento;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeCarrinho;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDePedido;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeUsuario;
+import com.api.ecommerce.utils.UsuarioUtils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,18 +25,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Checkout e leitura de pedido — PRD "Checkout e Pedido", fatia 1.
  *
  * O carrinho aberto vira um pedido IMUTAVEL, e nada mais acontece: o pedido
- * nasce PENDENTE e o estoque continua intocado. Quem baixa estoque e a
- * aprovacao do pagamento, na fatia 2. Aqui nao ha reserva, e por isso tambem
- * nao ha trava: travar linha de produto que ninguem vai alterar seria contencao
- * sem beneficio (D1).
+ * nasce PENDENTE e o estoque continua intocado
  *
  * **Todo metodo comeca pelo dono**, como no carrinho: nenhum recebe id de
  * pedido sem receber tambem o `sub` de quem esta pedindo, e a busca e sempre
- * pelos dois juntos (RNF-PED-02). Pedido de outro dono responde 404, e nao 403:
- * 403 confirmaria que aquele pedido existe (D7).
+ * pelos dois juntos . Pedido de outro dono responde 404, e nao 403:
+ * 403 confirmaria que aquele pedido existe .
  */
 @Service
 public class ServicoDePedido {
@@ -77,19 +73,19 @@ public class ServicoDePedido {
     }
 
     /**
-     * O checkout: carrinho aberto vira pedido PENDENTE (RF-PED-01).
+     * O checkout: carrinho aberto vira pedido PENDENTE
      *
-     * Uma transacao so, e nenhuma chamada de rede dentro dela (RNF-PED-03). A
+     * Uma transacao so, e nenhuma chamada de rede dentro dela. A
      * ordem importa:
      *
      * 1. a chave de idempotencia e consultada ANTES de qualquer escrita — o
      *    reenvio devolve o pedido que ja existe em vez de cobrar de novo;
      * 2. TODOS os itens sao validados antes de o pedido nascer, e as falhas
      *    saem juntas: corrigir uma de cada vez faria a pessoa descobrir o
-     *    problema seguinte so depois de resolver o anterior (RF-PED-08);
+     *    problema seguinte so depois de resolver o anterior;
      * 3. o carrinho vira CONVERTIDO na mesma transacao. O indice parcial
      *    `uk_carrinho_aberto_por_usuario` so olha ABERTO, entao o cliente ganha
-     *    carrinho novo de graca na proxima adicao (D3).
+     *    carrinho novo de graca na proxima adica.
      *
      * Os produtos NAO sao relidos: `carrinhos.abertoDe` ja traz cada linha com
      * o seu produto na mesma consulta, e a validacao usa esses (RNF-PED-04).
@@ -98,7 +94,7 @@ public class ServicoDePedido {
      */
     @Transactional
     public PedidoDtoOut criar(UUID sub, String chaveRecebida) {
-        Usuario dono = exigirUsuario(sub);
+        Usuario dono = UsuarioUtils.getUser(usuarios, sub);
         String chave = chaveDeIdempotencia(chaveRecebida);
 
         // Replay: mesmo par (usuario, chave) devolve o mesmo pedido
@@ -137,7 +133,7 @@ public class ServicoDePedido {
 
     @Transactional(readOnly = true)
     public PedidoDtoOut buscar(UUID sub, UUID idPublico) {
-        exigirUsuario(sub);
+        UsuarioUtils.getUser(usuarios, sub);
         return pedidos.findByIdPublicoAndUsuarioKeycloakSub(idPublico, sub)
                 .map(PedidoDtoOut::de)
                 // Pedido de outro dono responde igual a id inventado: dizer
@@ -146,14 +142,14 @@ public class ServicoDePedido {
 
     @Transactional(readOnly = true)
     public PaginaDtoOut<PedidoDtoOut> listar(UUID sub, Integer pagina, Integer tamanho) {
-        exigirUsuario(sub);
+        UsuarioUtils.getUser(usuarios, sub);
         return PaginaDtoOut.de(
                 pedidos.findByUsuarioKeycloakSubOrderByCriadoEmDesc(sub, paginacaoDe(pagina, tamanho)),
                 PedidoDtoOut::de);
     }
 
     /**
-     * Revalida o carrinho inteiro contra o estoque de agora (RF-PED-07).
+     * Revalida o carrinho inteiro contra o estoque de agora.
      */
     private void exigirTudoDisponivel(Carrinho carrinho) {
         Map<String, String> indisponiveis = new LinkedHashMap<>();
@@ -205,12 +201,12 @@ public class ServicoDePedido {
     }
 
     /**
-     * O corpo do evento que anuncia o pedido (RF-PED-13).
+     * O corpo do evento que anuncia o pedido.
      *
      * Leva o id publico, o total e o tamanho do pedido — nada de nome, e-mail
      * ou login do comprador. O evento vai para um broker e sobrevive ao
      * registro que o originou; documento e e-mail nao tem por que viajar junto
-     * (LGPD, RNF-SEC-03).
+     *.
      *
      * Quem serializa e grava e o RegistradorDeEventos, na mesma transacao deste
      * metodo.
@@ -223,18 +219,6 @@ public class ServicoDePedido {
                 "quantidadeItens", pedido.getItens().size());
     }
 
-    /**
-     * Pedido e de gente autenticada. Token valido cujo `sub` nao tem usuario
-     * espelhado nao serve: `usuario_id` e NOT NULL, e sem dono nao ha a quem o
-     * pedido pertencer.
-     */
-    private Usuario exigirUsuario(UUID sub) {
-        if (sub == null) {
-            throw new ExcecaoDeAutenticacao("Sessao ausente ou expirada");
-        }
-        return usuarios.findByKeycloakSub(sub)
-                .orElseThrow(() -> new ExcecaoDeAutenticacao("Sessao ausente ou expirada"));
-    }
 
     /** Sem Sort: a ordem e fixa no metodo do repositorio, e nao se escolhe. */
     private Pageable paginacaoDe(Integer pagina, Integer tamanho) {

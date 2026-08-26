@@ -263,4 +263,10 @@ class ServicoDePedidoTest {
         assertThat(pedidoGravado().getChaveIdempotencia()).isNotBlank();
     }
 
+    /** O pedido que chegou ao repositorio, e nao o DTO que voltou ao cliente. */
+    private Pedido pedidoGravado() {
+        ArgumentCaptor<Pedido> capturado = ArgumentCaptor.forClass(Pedido.class);
+        verify(pedidos).saveAndFlush(capturado.capture());
+        return capturado.getValue();
+    }
 }

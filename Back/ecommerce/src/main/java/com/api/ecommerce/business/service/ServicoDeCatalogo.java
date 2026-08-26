@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Leitura do catalogo publico — RF-CAT-01 a RF-CAT-09.
+ * Leitura do catalogo publico
  *
  * Um servico so atende os dois controllers. A listagem inicial e a busca sao
  * a mesma consulta com parametros diferentes: quem procura "banana" quer o
@@ -77,7 +77,7 @@ public class ServicoDeCatalogo {
     }
 
     /**
-     * Um produto — RF-CAT-07.
+     * Um produto 
      *
      * Produto inativo devolve 404 igual a id inventado. A mensagem tambem e a
      * mesma: dizer "este produto foi desativado" entregaria, a quem varre a
