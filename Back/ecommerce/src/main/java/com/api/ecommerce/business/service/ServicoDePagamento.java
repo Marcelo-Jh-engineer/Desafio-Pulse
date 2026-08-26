@@ -5,7 +5,6 @@ import com.api.ecommerce.business.gateway.ResultadoDoPagamento;
 import com.api.ecommerce.business.outbox.RegistradorDeEventos;
 import com.api.ecommerce.dtos.BaixaEstoque;
 import com.api.ecommerce.dtos.eventos.PagamentoSolicitado;
-import com.api.ecommerce.dtos.eventos.PedidoPago;
 import com.api.ecommerce.dtos.out.PagamentoDtoOut;
 import com.api.ecommerce.infrastructure.entities.ItemPedido;
 import com.api.ecommerce.infrastructure.entities.Pagamento;

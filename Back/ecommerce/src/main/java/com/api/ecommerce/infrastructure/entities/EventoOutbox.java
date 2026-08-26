@@ -49,7 +49,7 @@ public class EventoOutbox {
     @Column(nullable = false, updatable = false)
     private Long agregadoId;
 
-    /** O que aconteceu: "PEDIDO_PAGO", "PAGAMENTO_RECUSADO". */
+    /** O que aconteceu: "PEDIDO_CRIADO", "PAGAMENTO_SOLICITADO". */
     @Column(nullable = false, updatable = false, length = 60)
     private String tipo;
 

@@ -21,15 +21,13 @@ import org.springframework.context.annotation.Configuration;
  * <pre>
  * exchange ecommerce.eventos (topic, durable)
  *   pagamento.solicitado -> pagamentos.solicitados
- *   pedido.pago          -> pedidos.pagos
  *
  * exchange ecommerce.eventos.dlx (fanout, durable)
  *   -> pagamentos.solicitados.dlq
- *   -> pedidos.pagos.dlq
  * </pre>
  *
  * **Topic e nao direct** porque a chave de roteamento e hierarquica
- * (`pagamento.solicitado`, `pedido.pago`): o dia em que alguem quiser ouvir
+ * (`pedido.criado`, `pagamento.solicitado`): o dia em que alguem quiser ouvir
  * `pedido.*` inteiro, basta um binding — sem mexer em quem publica.
  *
  * **A DLX e fanout** porque ela nao decide nada: o que chega la ja falhou, e
@@ -46,7 +44,6 @@ public class ConfiguracaoDoRabbit {
     public static final String EXCHANGE_DE_ERRO = "ecommerce.eventos.dlx";
 
     public static final String FILA_PAGAMENTOS_SOLICITADOS = "pagamentos.solicitados";
-    public static final String FILA_PEDIDOS_PAGOS = "pedidos.pagos";
 
     private static final String SUFIXO_DE_ERRO = ".dlq";
 
@@ -75,18 +72,8 @@ public class ConfiguracaoDoRabbit {
     }
 
     @Bean
-    public Queue filaDePedidosPagos() {
-        return filaDeTrabalho(FILA_PEDIDOS_PAGOS);
-    }
-
-    @Bean
     public Queue filaDeErroDePagamentos() {
         return QueueBuilder.durable(FILA_PAGAMENTOS_SOLICITADOS + SUFIXO_DE_ERRO).build();
-    }
-
-    @Bean
-    public Queue filaDeErroDePedidosPagos() {
-        return QueueBuilder.durable(FILA_PEDIDOS_PAGOS + SUFIXO_DE_ERRO).build();
     }
 
     @Bean
@@ -97,20 +84,8 @@ public class ConfiguracaoDoRabbit {
     }
 
     @Bean
-    public Binding ligacaoDePedidosPagos() {
-        return BindingBuilder.bind(filaDePedidosPagos())
-                .to(exchangeDeEventos())
-                .with(TipoDeEvento.PEDIDO_PAGO.chaveDeRoteamento());
-    }
-
-    @Bean
     public Binding ligacaoDeErroDePagamentos() {
         return BindingBuilder.bind(filaDeErroDePagamentos()).to(exchangeDeErro());
-    }
-
-    @Bean
-    public Binding ligacaoDeErroDePedidosPagos() {
-        return BindingBuilder.bind(filaDeErroDePedidosPagos()).to(exchangeDeErro());
     }
 
     private Queue filaDeTrabalho(String nome) {

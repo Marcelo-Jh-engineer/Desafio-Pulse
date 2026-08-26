@@ -16,8 +16,7 @@ import java.util.Optional;
 public enum TipoDeEvento {
 
     PEDIDO_CRIADO("pedido.criado"),
-    PAGAMENTO_SOLICITADO("pagamento.solicitado"),
-    PEDIDO_PAGO("pedido.pago");
+    PAGAMENTO_SOLICITADO("pagamento.solicitado");
 
     private final String chaveDeRoteamento;
 

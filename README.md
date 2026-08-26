@@ -97,7 +97,7 @@ POST /api/pedidos/{id}/pagamentos
    ConsumidorDePagamento                           pagamentos.solicitados.dlq
         |
         +-- gateway decide o desfecho
-        +-- aprovado: trava produtos, baixa estoque, pedido PAGO
+        +-- aprovado: trava produtos, baixa estoque, pedido PAGO (fim da linha)
         +-- recusado: pedido segue PENDENTE, cliente tenta de novo
 ```
 
@@ -160,7 +160,7 @@ Front/src/
 |---|---|
 | A cobrança sai **por fila**, não no thread da requisição | Gateway de pagamento é chamada externa e lenta. Segurando a requisição, o cliente espera pelo pior caso e uma queda do gateway vira erro na tela. Com fila, a API responde **202** em milissegundos e o cliente acompanha o status. |
 | **Outbox transacional** | A API nunca publica direto no broker. O evento é gravado em `tb_outbox_eventos` na mesma transação do fato; se o commit voltar atrás, o evento volta com ele. `PublicadorDeEventos` varre o que está pendente a cada 2 s e só grava `publicado_em` **depois do ack** do broker (`publisher-confirm-type=correlated`). Broker fora do ar não derruba a API nem perde cobrança: os eventos esperam no banco. |
-| Exchange **topic**, não direct | As chaves são hierárquicas (`pagamento.solicitado`, `pedido.pago`). Quem quiser ouvir `pedido.*` inteiro cria um binding, sem tocar em quem publica. |
+| Exchange **topic**, não direct | As chaves são hierárquicas (`pedido.criado`, `pagamento.solicitado`). Quem quiser ouvir `pedido.*` inteiro cria um binding, sem tocar em quem publica. |
 | DLX **fanout** | O que chega lá já falhou; ela não decide nada. Cada fila de trabalho aponta para a própria DLQ pelo binding — rotear por chave repetiria, no caminho do erro, uma decisão já tomada no caminho feliz. |
 | `default-requeue-rejected=false` com 3 tentativas e backoff | Sem as duas peças juntas, a mensagem envenenada volta para a fila e gira para sempre, com o problema invisível. Assim ela para na DLQ, onde dá para olhar. |
 | Topologia declarada **em código** (`ConfiguracaoDoRabbit`) | Fila criada à mão no painel some no primeiro `docker compose down -v` e ninguém lembra de refazer. |
@@ -640,8 +640,8 @@ docker compose exec banco psql -U postgres -d ecommerce \
 ```
 
 No painel em http://localhost:15672 (usuário e senha do `.env`), a aba **Queues** mostra
-`pagamentos.solicitados`, `pedidos.pagos` e as duas `.dlq`. Mensagem parada numa DLQ
-significa que o consumidor falhou três vezes — o log do backend diz por quê.
+`pagamentos.solicitados` e a sua `.dlq`. Mensagem parada na DLQ significa que o
+consumidor falhou três vezes — o log do backend diz por quê.
 
 ### Formato dos erros
 

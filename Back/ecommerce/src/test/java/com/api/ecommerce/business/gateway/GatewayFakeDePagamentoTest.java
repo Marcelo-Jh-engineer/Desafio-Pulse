@@ -35,10 +35,10 @@ class GatewayFakeDePagamentoTest {
 
     // T2
     @Test
-    @DisplayName("total terminado em 3 e em 7 e recusado, com motivos diferentes")
+    @DisplayName("total terminado em 3 e em 8 e recusado, com motivos diferentes")
     void recusaPorUltimoDigito() {
         ResultadoDoPagamento semSaldo = gateway.processar(2023);
-        ResultadoDoPagamento bloqueado = gateway.processar(8997);
+        ResultadoDoPagamento bloqueado = gateway.processar(1298);
 
         assertThat(semSaldo.aprovado()).isFalse();
         assertThat(bloqueado.aprovado()).isFalse();
@@ -51,7 +51,7 @@ class GatewayFakeDePagamentoTest {
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {1298, 100, 649, 8990, 2799, 1, 2, 4, 5, 6, 8, 9})
+    @ValueSource(longs = {100, 649, 8990, 2799, 8997, 1, 2, 4, 5, 6, 7, 9})
     @DisplayName("qualquer outro final aprova, e sem motivo")
     void demaisAprovam(long valor) {
         ResultadoDoPagamento resultado = gateway.processar(valor);
