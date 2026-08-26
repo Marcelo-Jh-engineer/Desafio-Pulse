@@ -30,7 +30,7 @@ coverage/
 # ---------------------------------------------------------------
 # .env.example, .env.development e .env.production sao versionados de proposito:
 # nao contem segredo, so VITE_API_MODE e VITE_API_BASE_URL.
-.env.local
+.env.locl
 .env.*.local
 *.pem
 *.key
@@ -78,6 +78,6 @@ desktop.ini
 *~
 
 # Ambiente do backend: contem senha do banco.
-.env
+
 .env.example
 .vscode/
