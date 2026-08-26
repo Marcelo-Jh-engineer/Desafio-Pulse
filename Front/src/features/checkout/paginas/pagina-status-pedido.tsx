@@ -1,36 +1,25 @@
-import { Link, useParams } from 'react-router-dom';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { Clock, CreditCard, XCircle } from 'lucide-react';
 import { TituloDaPagina } from '@/components/titulo-da-pagina';
 import { EstadoErro } from '@/components/estado-erro';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DetalhesDoPedido } from '@/features/checkout/componentes/detalhes-do-pedido';
-import { usePedido } from '@/features/checkout/hooks/use-checkout';
+import { usePagamentos, usePedido } from '@/features/checkout/hooks/use-checkout';
 import { ErroDeAplicacao } from '@/lib/erros';
-import type { StatusPedido } from '@/types/dominio';
+import { ROTULO_METODO_PAGAMENTO } from '@/types/dominio';
 
-/** Cada estado dito por extenso, nao so por cor — RF-PED-02. */
-const APARENCIA: Record<StatusPedido, { titulo: string; classe: string; icone: typeof Clock }> = {
-  PENDENTE: {
-    titulo: 'Aguardando confirmação do pagamento',
-    classe: 'text-alerta',
-    icone: Clock,
-  },
-  PAGO: { titulo: 'Pagamento aprovado', classe: 'text-sucesso', icone: CheckCircle2 },
-  FALHOU: { titulo: 'Pagamento recusado', classe: 'text-destructive', icone: XCircle },
-  CANCELADO: { titulo: 'Pedido cancelado', classe: 'text-muted-foreground', icone: XCircle },
-};
-
-/**
- * Status do pedido — RF-PED-01 a RF-PED-04.
- *
- * Separada da confirmacao de proposito: a confirmacao e o desfecho imediato da
- * compra, esta e a tela que o cliente reabre depois, pelo link.
- */
+/** Acompanha pedido e tentativa de pagamento enquanto o consumidor processa a fila. */
 export function PaginaStatusPedido() {
   const { id = '' } = useParams();
-  const pedido = usePedido(id);
+  const pagamentos = usePagamentos(id, true);
+  const statusDaTentativa = pagamentos.data?.[0]?.status;
+  const acompanharPedido =
+    statusDaTentativa === 'PENDENTE' ||
+    statusDaTentativa === 'AGUARDANDO' ||
+    statusDaTentativa === 'APROVADO';
+  const pedido = usePedido(id, acompanharPedido);
 
   if (pedido.isPending) return <Skeleton className="h-96 w-full" />;
 
@@ -46,10 +35,37 @@ export function PaginaStatusPedido() {
     );
   }
 
-  const { titulo, classe, icone: Icone } = APARENCIA[pedido.data.status];
-  const dataDoPagamento = pedido.data.pagoEm
-    ? new Date(pedido.data.pagoEm).toLocaleString('pt-BR')
-    : null;
+  if (pedido.data.status === 'PAGO') {
+    return <Navigate to={`/pedidos/${pedido.data.id}/confirmacao`} replace />;
+  }
+
+  const tentativa = pagamentos.data?.[0];
+  const recusado = tentativa?.status === 'RECUSADO';
+  const processando =
+    tentativa?.status === 'PENDENTE' ||
+    tentativa?.status === 'AGUARDANDO' ||
+    tentativa?.status === 'APROVADO';
+
+  let titulo = 'Pedido aguardando pagamento';
+  let classe = 'text-alerta';
+  let Icone = CreditCard;
+
+  if (pedido.data.status === 'CANCELADO') {
+    titulo = 'Pedido cancelado';
+    classe = 'text-muted-foreground';
+    Icone = XCircle;
+  } else if (pedido.data.status === 'FALHOU' || recusado) {
+    titulo = 'Pagamento recusado';
+    classe = 'text-destructive';
+    Icone = XCircle;
+  } else if (processando) {
+    titulo = 'Pagamento em processamento';
+    classe = 'text-alerta';
+    Icone = Clock;
+  }
+
+  const motivo = tentativa?.motivoRecusa ?? pedido.data.motivoRecusa;
+  const atualizando = pedido.isFetching || pagamentos.isFetching;
 
   return (
     <div className="space-y-6">
@@ -61,33 +77,43 @@ export function PaginaStatusPedido() {
           <Icone aria-hidden="true" className="size-5 shrink-0" />
           {titulo}
         </p>
-        {dataDoPagamento ? (
-          <p className="text-sm text-muted-foreground">Pago em {dataDoPagamento}</p>
+        {tentativa ? (
+          <p className="text-sm text-muted-foreground">
+            {ROTULO_METODO_PAGAMENTO[tentativa.metodo]} · tentativa {tentativa.id}
+          </p>
         ) : null}
-        {pedido.data.motivoRecusa ? (
-          <p className="text-sm text-muted-foreground">Motivo: {pedido.data.motivoRecusa}</p>
+        {motivo ? <p className="text-sm text-muted-foreground">Motivo: {motivo}</p> : null}
+        {processando ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Esta página é atualizada automaticamente enquanto o pagamento está na fila.
+          </p>
+        ) : null}
+        {pagamentos.isError ? (
+          <p role="alert" className="text-sm text-destructive">
+            Não foi possível consultar as tentativas de pagamento.
+          </p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {pedido.data.status === 'FALHOU' ? (
-          // Nova tentativa reabre o pagamento com o **mesmo** pedido: nao
-          // recria carrinho nem duplica o registro (RF-PED-04).
+        {pedido.data.status === 'PENDENTE' && !processando ? (
           <Button variante="acao" asChild>
-            <Link to={`/checkout/pagamento?pedido=${pedido.data.id}`}>Tentar pagar de novo</Link>
+            <Link to={`/checkout/pagamento?pedido=${pedido.data.id}`}>
+              {recusado ? 'Tentar pagar novamente' : 'Escolher pagamento'}
+            </Link>
           </Button>
         ) : null}
 
-        {pedido.data.status === 'PENDENTE' ? (
+        {pedido.data.status === 'PENDENTE' && processando ? (
           <Button
             variante="secundario"
             onClick={() => {
-              void pedido.refetch();
+              void Promise.all([pedido.refetch(), pagamentos.refetch()]);
             }}
-            disabled={pedido.isFetching}
-            aria-busy={pedido.isFetching}
+            disabled={atualizando}
+            aria-busy={atualizando}
           >
-            {pedido.isFetching ? 'Atualizando...' : 'Atualizar'}
+            {atualizando ? 'Atualizando...' : 'Atualizar agora'}
           </Button>
         ) : null}
 

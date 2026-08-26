@@ -11,9 +11,11 @@ interface PropriedadesAviso {
 function descrever(divergencia: DivergenciaCarrinho): string {
   switch (divergencia.tipo) {
     case 'PRECO_ALTERADO':
-      return `${divergencia.nome}: o preço mudou de ${formatarPreco(
-        divergencia.precoAnteriorEmCentavos ?? 0,
-      )} para ${formatarPreco(divergencia.precoAtualEmCentavos ?? 0)}.`;
+      return divergencia.precoAtualEmCentavos == null
+        ? `${divergencia.nome}: o preço mudou desde que o produto entrou no carrinho.`
+        : `${divergencia.nome}: o preço mudou de ${formatarPreco(
+            divergencia.precoAnteriorEmCentavos ?? 0,
+          )} para ${formatarPreco(divergencia.precoAtualEmCentavos)}.`;
     case 'ESTOQUE_INSUFICIENTE':
       return `${divergencia.nome}: restam apenas ${divergencia.quantidadeDisponivel} unidades, e você pediu ${divergencia.quantidadeSolicitada}.`;
     case 'INDISPONIVEL':
