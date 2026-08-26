@@ -21,6 +21,15 @@ public interface RepositorioDePedido extends JpaRepository<Pedido, Long> {
     @EntityGraph(attributePaths = {"itens", "itens.produto", "usuario"})
     Optional<Pedido> findByIdPublicoAndUsuarioKeycloakSub(UUID idPublico, UUID keycloakSub);
 
+    /**
+     * Busca SEM dono — a unica do repositorio, e ela existe para o consumidor
+     * da fila, que age sobre a mensagem e nao sobre um usuario logado
+     * (RNF-PAG-02). Nenhuma rota HTTP chama este metodo: quem vem pela API
+     * passa sempre pelo par acima.
+     */
+    @EntityGraph(attributePaths = {"itens", "itens.produto"})
+    Optional<Pedido> findByIdPublico(UUID idPublico);
+
     /** Reenvio do checkout: devolve o pedido que ja existe em vez de duplicar. */
     @EntityGraph(attributePaths = {"itens", "itens.produto", "usuario"})
     Optional<Pedido> findByUsuarioKeycloakSubAndChaveIdempotencia(UUID keycloakSub, String chave);

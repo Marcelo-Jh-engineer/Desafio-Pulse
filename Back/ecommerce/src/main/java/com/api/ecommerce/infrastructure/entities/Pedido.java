@@ -153,8 +153,22 @@ public class Pedido {
     }
 
     public void cancelar() {
+        cancelar(null);
+    }
+
+    /**
+     * Cancelamento com motivo — hoje, so um: o estoque acabou entre o checkout
+     * e a aprovacao do pagamento.
+     *
+     * O motivo gravado aqui e por que a COMPRA acabou. O motivo do
+     * `tb_pagamentos` e por que aquela TENTATIVA nao passou. Sao fatos
+     * diferentes, e guardar os dois no mesmo lugar faria um sobrescrever o
+     * outro na proxima tentativa.
+     */
+    public void cancelar(String motivo) {
         exigirTransicaoPara(StatusPedido.CANCELADO);
         this.status = StatusPedido.CANCELADO;
+        this.motivoRecusa = motivo;
     }
 
     /**

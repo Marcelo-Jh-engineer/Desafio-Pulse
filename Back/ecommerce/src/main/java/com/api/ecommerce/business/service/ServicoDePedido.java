@@ -1,22 +1,20 @@
 package com.api.ecommerce.business.service;
 
+import com.api.ecommerce.business.outbox.RegistradorDeEventos;
 import com.api.ecommerce.dtos.out.PaginaDtoOut;
 import com.api.ecommerce.dtos.out.PedidoDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
-import com.api.ecommerce.infrastructure.entities.EventoOutbox;
 import com.api.ecommerce.infrastructure.entities.ItemCarrinho;
 import com.api.ecommerce.infrastructure.entities.Pedido;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.entities.Usuario;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
+import com.api.ecommerce.infrastructure.enums.TipoDeEvento;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeCarrinho;
-import com.api.ecommerce.infrastructure.repositories.RepositorioDeEventoOutbox;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDePedido;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeUsuario;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -59,27 +57,23 @@ public class ServicoDePedido {
     private static final int TAMANHO_MAXIMO_DA_CHAVE = 80;
 
     private static final String AGREGADO = "PEDIDO";
-    private static final String EVENTO_CRIADO = "PEDIDO_CRIADO";
 
     private final RepositorioDePedido pedidos;
     private final RepositorioDeCarrinho carrinhos;
     private final RepositorioDeUsuario usuarios;
-    private final RepositorioDeEventoOutbox eventos;
+    private final RegistradorDeEventos eventos;
     private final ServicoDeEstoque estoque;
-    private final ObjectMapper json;
 
     public ServicoDePedido(RepositorioDePedido pedidos,
                            RepositorioDeCarrinho carrinhos,
                            RepositorioDeUsuario usuarios,
-                           RepositorioDeEventoOutbox eventos,
-                           ServicoDeEstoque estoque,
-                           ObjectMapper json) {
+                           RegistradorDeEventos eventos,
+                           ServicoDeEstoque estoque) {
         this.pedidos = pedidos;
         this.carrinhos = carrinhos;
         this.usuarios = usuarios;
         this.eventos = eventos;
         this.estoque = estoque;
-        this.json = json;
     }
 
     /**
@@ -136,7 +130,7 @@ public class ServicoDePedido {
         // que o evento do outbox precisa referenciar.
         pedidos.saveAndFlush(pedido);
         carrinhos.save(carrinho);
-        eventos.save(new EventoOutbox(AGREGADO, pedido.getId(), EVENTO_CRIADO, conteudoDe(pedido)));
+        eventos.registrar(AGREGADO, pedido.getId(), TipoDeEvento.PEDIDO_CRIADO, conteudoDe(pedido));
 
         return PedidoDtoOut.de(pedido);
     }
@@ -211,26 +205,22 @@ public class ServicoDePedido {
     }
 
     /**
-     * O evento que anuncia o pedido, gravado na MESMA transacao (RF-PED-13).
+     * O corpo do evento que anuncia o pedido (RF-PED-13).
      *
-     * O corpo leva o id publico, o total e o tamanho do pedido — nada de nome,
-     * e-mail ou login do comprador. O evento vai para um broker e sobrevive ao
+     * Leva o id publico, o total e o tamanho do pedido — nada de nome, e-mail
+     * ou login do comprador. O evento vai para um broker e sobrevive ao
      * registro que o originou; documento e e-mail nao tem por que viajar junto
      * (LGPD, RNF-SEC-03).
+     *
+     * Quem serializa e grava e o RegistradorDeEventos, na mesma transacao deste
+     * metodo.
      */
-    private String conteudoDe(Pedido pedido) {
-        try {
-            return json.writeValueAsString(Map.of(
-                    "pedidoId", pedido.getIdPublico().toString(),
-                    "status", pedido.getStatus().name(),
-                    "totalEmCentavos", pedido.getTotalEmCentavos(),
-                    "quantidadeItens", pedido.getItens().size()));
-        } catch (JsonProcessingException excecao) {
-            // Sem evento nao ha commit: o outbox so vale se o evento e o fato
-            // vivem ou morrem juntos.
-            throw new IllegalStateException(
-                    "Nao foi possivel serializar o evento do pedido", excecao);
-        }
+    private Map<String, Object> conteudoDe(Pedido pedido) {
+        return Map.of(
+                "pedidoId", pedido.getIdPublico().toString(),
+                "status", pedido.getStatus().name(),
+                "totalEmCentavos", pedido.getTotalEmCentavos(),
+                "quantidadeItens", pedido.getItens().size());
     }
 
     /**

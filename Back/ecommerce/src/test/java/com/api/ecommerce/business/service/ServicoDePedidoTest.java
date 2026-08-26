@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.api.ecommerce.business.outbox.RegistradorDeEventos;
 import com.api.ecommerce.dtos.out.PedidoDtoOut;
 import com.api.ecommerce.dtos.out.PedidoItemDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
@@ -74,8 +75,12 @@ class ServicoDePedidoTest {
 
     @BeforeEach
     void preparar() {
-        servico = new ServicoDePedido(pedidos, carrinhos, usuarios, eventos,
-                new ServicoDeEstoque(), new ObjectMapper());
+        // O RegistradorDeEventos entra de verdade sobre o repositorio dublado:
+        // ele so serializa e grava, e o que interessa aqui e a linha que chega
+        // ao outbox — nao que o servico chamou um mock.
+        servico = new ServicoDePedido(pedidos, carrinhos, usuarios,
+                new RegistradorDeEventos(eventos, new ObjectMapper()),
+                new ServicoDeEstoque());
 
         maria = new Usuario(SUB, "Maria Souza", "maria@exemplo.com", "11144477735");
 

@@ -26,22 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Pedidos de quem esta logado — PRD "Checkout e Pedido".
- *
- * **Nenhuma rota recebe id de carrinho nem de usuario** (RNF-PED-02). O dono
- * sai do token; o carrinho e o unico ABERTO daquela pessoa. Aceitar o id no
- * corpo criaria a possibilidade de fechar o carrinho alheio, e a defesa contra
- * isso seria uma conferencia de dono que so precisa existir porque o parametro
- * existe.
- *
- * Todas exigem o papel CLIENTE, imposto na cadeia de filtros
- * (ConfiguracaoDeSeguranca, RNF-PED-01): token de ADMIN recebe 403. O admin nao
- * navega a loja, e nao compra.
- *
- * O controller so traduz HTTP. Validacao de estoque, idempotencia e transacao
- * vivem em ServicoDePedido.
- */
+
 @RestController
 @RequestMapping("/api/pedidos")
 @Tag(name = "Pedidos", description = "Checkout e historico do usuario autenticado")
@@ -59,16 +44,7 @@ public class PedidoController {
         this.usuarioMapper = usuarioMapper;
     }
 
-    /**
-     * O checkout: o carrinho aberto vira um pedido PENDENTE.
-     *
-     * Sem corpo — nao ha nada a escolher. O estoque NAO baixa aqui: quem baixa
-     * e a aprovacao do pagamento.
-     *
-     * O replay idempotente devolve 201, igual a criacao original (D6): para
-     * quem chamou o resultado e o mesmo, e um segundo codigo so daria ao front
-     * um caso a mais para tratar sem nada a fazer de diferente.
-     */
+
     @Operation(summary = "Cria o pedido a partir do carrinho aberto",
             description = """
                     O pedido copia cada linha do carrinho — nome, unidade, quantidade e o
@@ -108,13 +84,7 @@ public class PedidoController {
         return pedidos.criar(donoDaRequisicao(token), chaveIdempotencia);
     }
 
-    /**
-     * Um pedido, pelo id publico.
-     *
-     * Pedido de outra pessoa responde 404, e nao 403: 403 confirmaria que
-     * aquele id existe, e entregaria a quem varre a API a lista do que ja foi
-     * comprado.
-     */
+
     @Operation(summary = "Mostra um pedido do cliente",
             responses = {
                 @ApiResponse(responseCode = "200", description = "O pedido"),
