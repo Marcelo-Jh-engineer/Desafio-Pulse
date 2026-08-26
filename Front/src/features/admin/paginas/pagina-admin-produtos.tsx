@@ -4,33 +4,33 @@ import { Plus } from 'lucide-react';
 import { TituloDaPagina } from '@/components/titulo-da-pagina';
 import { EstadoErro } from '@/components/estado-erro';
 import { EstadoVazio } from '@/components/estado-vazio';
+import { Paginacao } from '@/components/paginacao';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LinhaProdutoAdmin } from '@/features/admin/componentes/linha-produto-admin';
-import { useCategoriasAdmin, useProdutosAdmin } from '@/features/admin/hooks/use-admin';
+import { useCategoriasDisponiveis, useProdutosAdmin } from '@/features/admin/hooks/use-admin';
 import { useValorAdiado } from '@/hooks/use-valor-adiado';
 
 /**
- * Listagem administrativa — RF-ADM-01, RF-ADM-03 e RF-ADM-08.
+ * Listagem administrativa alimentada pelo catalogo da API.
  *
  * É a **única** visão de produtos que o administrador tem: ele não navega o
- * catálogo como cliente. Por isso a linha mostra tudo que importa para operar —
- * SKU, categoria, preço, estoque e situação — e o preço se edita aqui mesmo,
- * sem sair da lista.
+ * catálogo como cliente. Por isso a linha mostra imagem, nome, categoria,
+ * unidade, preço e estoque na mesma visão.
  */
 export function PaginaAdminProdutos() {
   const [busca, definirBusca] = useState('');
   const [categoria, definirCategoria] = useState('');
-  const [situacao, definirSituacao] = useState('');
+  const [pagina, definirPagina] = useState(0);
   const buscaAdiada = useValorAdiado(busca, 300);
 
-  const categorias = useCategoriasAdmin();
+  const categorias = useCategoriasDisponiveis();
   const produtos = useProdutosAdmin({
     ...(buscaAdiada.trim() ? { busca: buscaAdiada } : {}),
     ...(categoria ? { categoria } : {}),
-    ...(situacao === 'ATIVO' || situacao === 'INATIVO' ? { situacao } : {}),
-    ordenacao: 'ESTOQUE_ASC',
+    pagina,
+    tamanho: 10,
   });
 
   return (
@@ -39,7 +39,7 @@ export function PaginaAdminProdutos() {
         <div className="space-y-1">
           <TituloDaPagina tituloDocumento="Produtos">Produtos</TituloDaPagina>
           <p className="text-muted-foreground">
-            Ordenados por menor estoque — o que está acabando aparece primeiro.
+            Produtos ativos carregados diretamente do catálogo da API.
           </p>
         </div>
         <Button variante="primario" asChild>
@@ -53,7 +53,7 @@ export function PaginaAdminProdutos() {
       <section aria-label="Filtros" className="flex flex-wrap gap-4">
         <div className="min-w-48 flex-1">
           <label htmlFor="busca-admin" className="mb-1.5 block text-sm font-medium">
-            Buscar por nome ou SKU
+            Buscar por nome
           </label>
           <Input
             id="busca-admin"
@@ -61,6 +61,7 @@ export function PaginaAdminProdutos() {
             value={busca}
             onChange={(evento) => {
               definirBusca(evento.target.value);
+              definirPagina(0);
             }}
           />
         </div>
@@ -74,7 +75,9 @@ export function PaginaAdminProdutos() {
             value={categoria}
             onChange={(evento) => {
               definirCategoria(evento.target.value);
+              definirPagina(0);
             }}
+            disabled={categorias.isPending || categorias.isError}
             className="h-10 w-full cursor-pointer rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-44"
           >
             <option value="">Todas</option>
@@ -85,25 +88,13 @@ export function PaginaAdminProdutos() {
             ))}
           </select>
         </div>
-
-        <div>
-          <label htmlFor="situacao-admin" className="mb-1.5 block text-sm font-medium">
-            Situação
-          </label>
-          <select
-            id="situacao-admin"
-            value={situacao}
-            onChange={(evento) => {
-              definirSituacao(evento.target.value);
-            }}
-            className="h-10 w-full cursor-pointer rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-36"
-          >
-            <option value="">Todas</option>
-            <option value="ATIVO">Ativos</option>
-            <option value="INATIVO">Inativos</option>
-          </select>
-        </div>
       </section>
+
+      {categorias.isError ? (
+        <p role="alert" className="text-sm text-destructive">
+          Não foi possível carregar as categorias do filtro.
+        </p>
+      ) : null}
 
       {produtos.isPending ? (
         <div className="space-y-2">
@@ -134,6 +125,11 @@ export function PaginaAdminProdutos() {
               <LinhaProdutoAdmin key={produto.id} produto={produto} />
             ))}
           </ul>
+          <Paginacao
+            pagina={produtos.data.pagina}
+            totalPaginas={produtos.data.totalPaginas}
+            aoMudarPagina={definirPagina}
+          />
         </>
       )}
     </div>

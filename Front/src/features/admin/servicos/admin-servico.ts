@@ -17,26 +17,30 @@ export interface CategoriaAdmin extends Categoria {
 export interface ParametrosAdminProdutos {
   busca?: string;
   categoria?: string;
-  situacao?: 'ATIVO' | 'INATIVO';
-  ordenacao?: 'ESTOQUE_ASC';
   pagina?: number;
+  tamanho?: number;
 }
 
 export function listarProdutosAdmin(
   parametros: ParametrosAdminProdutos,
 ): Promise<Pagina<Produto>> {
   const consulta: Record<string, string> = {};
-  if (parametros.busca?.trim()) consulta.busca = parametros.busca.trim();
   if (parametros.categoria) consulta.categoria = parametros.categoria;
-  if (parametros.situacao) consulta.situacao = parametros.situacao;
-  if (parametros.ordenacao) consulta.ordenacao = parametros.ordenacao;
   if (parametros.pagina !== undefined) consulta.pagina = String(parametros.pagina);
+  if (parametros.tamanho !== undefined) consulta.tamanho = String(parametros.tamanho);
 
-  return clienteHttp.obter<Pagina<Produto>>('/admin/produtos', { params: consulta });
+  const busca = parametros.busca?.trim();
+  if (busca) {
+    return clienteHttp.obter<Pagina<Produto>>('/catalogo/busca', {
+      params: { ...consulta, nome: busca },
+    });
+  }
+
+  return clienteHttp.obter<Pagina<Produto>>('/produtos', { params: consulta });
 }
 
 export function buscarProdutoAdmin(id: string): Promise<Produto> {
-  return clienteHttp.obter<Produto>(`/admin/produtos/${encodeURIComponent(id)}`);
+  return clienteHttp.obter<Produto>(`/produtos/${encodeURIComponent(id)}`);
 }
 
 export function cadastrarProduto(dados: RequisicaoProduto): Promise<Produto> {
@@ -52,6 +56,11 @@ export function alterarPreco(id: string, precoEmCentavos: number): Promise<Produ
 
 export function listarCategoriasAdmin(): Promise<CategoriaAdmin[]> {
   return clienteHttp.obter<CategoriaAdmin[]>('/admin/categorias');
+}
+
+/** Categorias ativas usadas nos filtros e no cadastro de produto. */
+export function listarCategoriasDisponiveis(): Promise<Categoria[]> {
+  return clienteHttp.obter<Categoria[]>('/categorias');
 }
 
 export function cadastrarCategoria(dados: RequisicaoCategoria): Promise<Categoria> {

@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   atualizarCategoria,
   cadastrarCategoria,
   buscarProdutoAdmin,
   cadastrarProduto,
   listarCategoriasAdmin,
+  listarCategoriasDisponiveis,
   alterarPreco,
   listarProdutosAdmin,
   type ParametrosAdminProdutos,
@@ -15,6 +16,7 @@ export function useProdutosAdmin(parametros: ParametrosAdminProdutos) {
   return useQuery({
     queryKey: chavesQuery.admin.produtos(parametros),
     queryFn: () => listarProdutosAdmin(parametros),
+    placeholderData: keepPreviousData,
     staleTime: 10_000,
   });
 }
@@ -33,6 +35,14 @@ export function useCategoriasAdmin() {
     queryKey: chavesQuery.admin.categorias(),
     queryFn: listarCategoriasAdmin,
     staleTime: 60_000,
+  });
+}
+
+export function useCategoriasDisponiveis() {
+  return useQuery({
+    queryKey: chavesQuery.categorias.todas(),
+    queryFn: listarCategoriasDisponiveis,
+    staleTime: 10 * 60_000,
   });
 }
 
