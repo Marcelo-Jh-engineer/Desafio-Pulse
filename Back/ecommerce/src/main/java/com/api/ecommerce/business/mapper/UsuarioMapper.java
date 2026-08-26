@@ -1,6 +1,5 @@
 package com.api.ecommerce.business.mapper;
 
-import com.api.ecommerce.dtos.NovoUsuarioDoKeycloak;
 import com.api.ecommerce.dtos.out.UsuarioDtoOut;
 import com.api.ecommerce.infrastructure.enums.Papel;
 import java.util.Collection;
@@ -44,10 +43,6 @@ public class UsuarioMapper {
     private String nomeDe(Jwt token) {
         String primeiro = token.getClaimAsString("given_name");
         String ultimo = token.getClaimAsString("family_name");
-        if (NovoUsuarioDoKeycloak.SOBRENOME_AUSENTE.equals(ultimo)
-                && primeiro != null && !primeiro.isBlank()) {
-            return primeiro;
-        }
         String nomeCompleto = token.getClaimAsString("name");
         if (nomeCompleto != null && !nomeCompleto.isBlank()) {
             return nomeCompleto;
