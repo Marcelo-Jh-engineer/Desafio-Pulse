@@ -2,9 +2,9 @@
 
 Monorepo com `Front/` (React) e `Back/` (Java 21 + Spring Boot 3).
 
-**Fase atual: F6 — integração com o backend.** O backend existe e serve o catálogo público: produtos, busca, categorias e imagem.
+**Estado atual.** O ciclo de compra fecha ponta a ponta: catálogo público, sessão via Keycloak, carrinho, pedido, pagamento assíncrono por fila e baixa de estoque na aprovação. O que ainda não existe no backend é **a escrita do admin** (produto e categoria) e o **Pix** — as telas estão lá, os endpoints não.
 
-**Não há mock em lugar nenhum.** O MSW foi removido do projeto — o front fala com a API de verdade, sempre. O que a API ainda não expõe simplesmente não funciona, em vez de funcionar contra um servidor imaginário. Hoje isso significa **carrinho, checkout, pedidos e o painel do admin**: as telas existem, os endpoints não.
+**Não há mock em lugar nenhum.** O MSW foi removido do projeto — o front fala com a API de verdade, sempre. O que a API não expõe simplesmente não funciona, em vez de funcionar contra um servidor imaginário.
 
 ---
 
@@ -18,12 +18,17 @@ Leia o que for relevante para a tarefa antes de escrever código:
 | `docs/models.md` | Tipos, contratos de API, regras de negócio, fixtures |
 | `docs/behavior.md` | Comportamento de cada tela, fluxos, estados, casos de borda |
 | `docs/design.md` | Paleta, tokens, tipografia, componentes, mascote |
+| `docs/backend.md` | Padrões da API: camadas, DTO, erro, transação, outbox, concorrência, testes |
+| `docs/uso-de-ia.md` | Relatório do processo com IA. Não descreve o sistema; não precisa ser lido para codar |
+| `README.md` | Visão da arquitetura, decisões, execução via Docker e exemplos de chamada |
 
 Ao implementar uma feature, cite o requisito que ela cobre (`RF-CAT-03`, por exemplo).
 
 ---
 
 ## Stack obrigatória
+
+### Front
 
 - React · TypeScript (`strict`) · Vite
 - React Router
@@ -33,6 +38,16 @@ Ao implementar uma feature, cite o requisito que ela cobre (`RF-CAT-03`, por exe
 - React Hook Form · Zod
 - Axios ou fetch encapsulado
 - ESLint · Prettier
+
+### Backend
+
+- Java 21 · Spring Boot 3.4 · Maven
+- Spring Web · Data JPA · Validation · AMQP
+- Spring Security como **OAuth2 Resource Server** (`spring-boot-starter-oauth2-resource-server`)
+- Flyway · PostgreSQL 16 · RabbitMQ 3 · Keycloak 26
+- springdoc-openapi (Swagger UI)
+- Lombok — **só `@Getter`**, e só em entidade. Nada de `@Data`, `@Builder` ou `@Setter`: entidade com setter público perde o controle sobre a própria transição de estado
+- JUnit 5 · Mockito · AssertJ. **Sem Testcontainers e sem H2** — decisão registrada
 
 ### Nenhuma biblioteca nova sem justificativa
 
@@ -108,13 +123,28 @@ Front/src/
   types/          # tipos do dominio (espelham docs/models.md)
   hooks/          # hooks compartilhados
   test/           # setup e utilitarios de teste
+
+Back/ecommerce/src/main/java/com/api/ecommerce/
+  controllers/            # REST + tratamento de erro. Sem regra de negocio
+  business/service/       # a regra. E aqui que vive @Transactional
+  business/gateway/       # portas para fora (pagamento), com implementacao trocavel
+  business/outbox/        # RegistradorDeEventos (grava), PublicadorDeEventos (envia)
+  business/mensageria/    # consumidores @RabbitListener
+  business/mapper/        # conversao entre camadas quando nao cabe no DTO
+  config/                 # seguranca, Rabbit, Keycloak, cookie, OpenAPI
+  dtos/in | dtos/out      # entrada e saida, sempre records
+  infrastructure/         # entities, repositories, enums, exception, client
+  utils/                  # funcao pura reusada por mais de um servico
+  resources/db/migration  # Flyway
 ```
 
-**Regra de acoplamento**: uma feature **nunca** importa de outra feature. O que for compartilhado sobe para `components/`, `lib/` ou `hooks/`.
+**Regra de acoplamento no front**: uma feature **nunca** importa de outra feature. O que for compartilhado sobe para `components/`, `lib/` ou `hooks/`.
+
+**Regra de acoplamento no backend**: a seta aponta sempre para dentro — `controllers` chama `business`, que chama `infrastructure`. Nunca o contrário, e controller nunca fala com repositório.
 
 ---
 
-## Arquitetura
+## Arquitetura do front
 
 | Regra | Detalhe |
 |---|---|
@@ -126,6 +156,108 @@ Front/src/
 | Estado de URL | Filtro, busca, ordenação e página vivem na query string, não em estado de componente |
 | Dinheiro | Sempre inteiro em centavos. **Nunca** ponto flutuante |
 | Datas | String ISO 8601 no modelo; conversão só na view |
+
+---
+
+## Arquitetura do backend
+
+Padrões já implementados. Feature nova segue estes; divergir exige justificativa
+registrada aqui, como qualquer outra decisão.
+
+### Camadas
+
+| Camada | Responsabilidade | O que **não** faz |
+|---|---|---|
+| `controllers` | Recebe, valida o corpo, chama um serviço, devolve DTO. Documenta a rota com `@Operation` e `@ApiResponse` | Regra de negócio, acesso a repositório, `@Transactional` |
+| `business/service` | A decisão do domínio. Dono da transação | Conhecer `HttpServletRequest`, `ResponseEntity` ou qualquer tipo de web |
+| `infrastructure/repositories` | Spring Data JPA e as consultas | Decidir o que fazer com o resultado |
+
+### DTO
+
+- **Sempre `record`**, nunca classe com getter, nunca a entidade no JSON.
+- `dtos/in` é entrada, com Bean Validation e mensagem em português voltada ao usuário
+  final (`"Escolha a forma de pagamento."`). `dtos/out` é saída, com uma fábrica
+  estática `de(entidade)` que concentra a conversão.
+- Sufixo `DtoIn` / `DtoOut` no nome do arquivo; `@Schema(name = "Pedido")` dá o nome
+  limpo que aparece no Swagger.
+- Nada de `package-info.java` nem de camada de mapper por pacote — decisão registrada.
+
+### Identidade e dono
+
+- **`idPublico` (UUID) é o que sai no contrato.** O `id` `BIGINT` é interno e nunca
+  aparece em URL, corpo ou log: id sequencial exposto é enumerável.
+- **O dono vem sempre do token**, pelo `sub` — `@AuthenticationPrincipal Jwt` no
+  controller, `UsuarioUtils.getUser(usuarios, sub)` no serviço. Id de usuário enviado
+  pelo cliente não é aceito em lugar nenhum.
+- **Recurso de outra pessoa responde 404**, nunca 403: 403 confirmaria que o id existe.
+
+### Erro
+
+- Exceções de domínio em `infrastructure/exception` — `ExcecaoDeNaoEncontrado` (404),
+  `ExcecaoDeConflito` (409), `ExcecaoDeAutenticacao` (401) — traduzidas num único
+  handler.
+- O corpo é sempre `ErroDtoOut { status, mensagem, instante }`. Rastro de pilha e
+  mensagem de framework não vazam para o cliente.
+- Estado de negócio inválido é **409**, não 400: o corpo estava certo, o mundo é que
+  não permite.
+
+### Persistência
+
+| Regra | Detalhe |
+|---|---|
+| Dono do schema | Flyway. `ddl-auto=validate` — o Hibernate só confere se o mapeamento bate |
+| Migration aplicada | **Nunca** se edita: o banco já rodou. Corrige-se com uma nova |
+| Dinheiro | `BIGINT` de centavos, `long` no Java. Nunca `NUMERIC`/`BigDecimal`, nunca ponto flutuante |
+| Datas | `Instant`, serializado ISO 8601 |
+| Regra de domínio | Em **método Java**, não em SQL, `@Formula` ou coluna gerada — o teste roda sem banco e precisa poder verificá-la |
+| N+1 | `@EntityGraph` na consulta que vai percorrer a coleção. `open-in-view=false`, então lazy fora da transação estoura |
+| Concorrência | `@Lock(PESSIMISTIC_WRITE)` no que vai ser debitado, e travar **em ordem de id** para não formar ciclo de espera |
+| Estoque | Só baixa na aprovação do pagamento. É o único caminho de saída |
+
+### Segurança
+
+- A API é **Resource Server**: valida o JWT em toda requisição. Papéis saem de
+  `realm_access.roles` e viram `ROLE_*`.
+- Rota nova entra explicitamente em `ConfiguracaoDeSeguranca`: `GET` de catálogo é
+  público, `/api/admin/**` é ADMIN, carrinho, pedido e pagamento são **CLIENTE**.
+  Sem a linha, a rota cai em `anyRequest().authenticated()` e o ADMIN passa.
+- O front nunca fala com o Keycloak: `/api/autenticacao/**` é proxy, e o
+  `client-secret` fica no servidor.
+
+### Mensageria
+
+- **A API nunca publica direto no broker.** O serviço grava o evento em
+  `tb_outbox_eventos` pelo `RegistradorDeEventos`, na mesma transação do fato.
+- `PublicadorDeEventos` varre o pendente e só grava `publicado_em` depois do ack do
+  broker.
+- **Consumidor idempotente**: trava a linha, confere o estado e sai sem fazer nada se
+  já estiver resolvida. O broker entrega ao menos uma vez.
+- Topologia — exchange, fila, binding, DLQ — declarada em `ConfiguracaoDoRabbit`.
+  Nada criado à mão no painel.
+- Fila só existe com alguém publicando **e** alguém consumindo. Topologia "pronta para
+  o futuro" foi removida uma vez; não volta.
+
+### Testes
+
+- Mockito, sem Spring e **sem banco**. Repositório dublado, entidade como objeto comum.
+- `@DisplayName` em português dizendo o comportamento, não o nome do método.
+- Cada teste prova uma decisão do serviço. O que só o banco garante — `CHECK`, índice
+  parcial, a migration — fica fora, e a conferência é a subida da aplicação.
+
+### Nomenclatura no Java
+
+| Elemento | Forma |
+|---|---|
+| Serviço | `ServicoDePagamento` |
+| Repositório | `RepositorioDePedido` |
+| Controller | `PedidoController` |
+| DTO | `PagamentoDtoIn`, `PedidoDtoOut` |
+| Exceção | `ExcecaoDeConflito` |
+| Configuração | `ConfiguracaoDoRabbit`, `CookieDeSessao` |
+| Tabela | `tb_pedidos`, `tb_pedido_itens` |
+
+Nome de arquivo **igual** ao nome da classe pública — divergir aborta o processamento
+de anotações e faz o Lombok parecer quebrado, com erro que não aponta para a causa.
 
 ---
 
@@ -251,8 +383,7 @@ Variáveis de ambiente:
 
 ## O que não fazer
 
-- Não criar código no `Back/` — a fase atual é só frontend.
-- Não adicionar biblioteca sem justificar.
+- Não adicionar biblioteca sem justificar, nos dois lados.
 - Não usar ponto flutuante para dinheiro.
 - Não usar nome de variável de domínio em inglês.
 - Não codificar a lista de categorias no front — vem da API.
@@ -264,6 +395,20 @@ Variáveis de ambiente:
 - Não guardar token em `localStorage`, `sessionStorage` ou cookie legível por script. A sessão sobrevive ao F5 pelo cookie HttpOnly, e por nenhum outro caminho.
 - Não remover indicador de foco.
 - Não usar `dangerouslySetInnerHTML` com conteúdo da API. A única exceção é o SVG do QR code, gerado localmente a partir de uma string que o próprio front montou.
+
+No backend, além disso:
+
+- Não devolver entidade JPA no JSON — sempre um `DtoOut`.
+- Não expor id numérico; o contrato usa `idPublico`.
+- Não aceitar id de usuário vindo do cliente. O dono é o `sub` do token.
+- Não colocar regra de negócio em SQL, `@Formula` ou coluna gerada.
+- Não editar migration já aplicada — corrige-se com uma nova.
+- Não publicar direto no broker: o evento passa pelo outbox.
+- Não declarar fila sem quem publique e quem consuma.
+- Não deixar rota nova fora de `ConfiguracaoDeSeguranca`, ou ela cai no
+  `anyRequest().authenticated()` e o ADMIN passa.
+- Não responder 403 para recurso de outro dono — é 404.
+- Não usar `@Transactional` em controller.
 
 ---
 

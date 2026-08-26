@@ -483,7 +483,7 @@ O carrinho é sempre o do dono do token — o `sub` do JWT — e nunca vem por p
 Pedir mais do que há em estoque responde **409**:
 
 ```json
-{ "status": 409, "mensagem": "Estoque insuficiente para Banana Prata.", "instante": "2026-08-26T14:02:11Z" }
+{ "status": 409, "mensagem": "Estoque insuficiente para Banana Prata.", "timestamp": "2026-08-26T14:02:11Z" }
 ```
 
 ### 4. Pedido e pagamento
@@ -606,7 +606,7 @@ consumidor falhou três vezes — o log do backend diz por quê.
 Toda falha responde no mesmo formato, sem vazar rastro de pilha:
 
 ```json
-{ "status": 404, "mensagem": "Pedido não encontrado.", "instante": "2026-08-26T14:10:00Z" }
+{ "status": 404, "mensagem": "Pedido não encontrado.", "timestamp": "2026-08-26T14:10:00Z" }
 ```
 
 | Código | Quando |
@@ -646,6 +646,7 @@ O front não tem testes automatizados; a verificação é `verificar-tipos`, `li
 | `docs/models.md` | Tipos, contratos de API, regras de negócio |
 | `docs/behavior.md` | Comportamento de cada tela, fluxos, estados, casos de borda |
 | `docs/design.md` | Paleta, tokens, tipografia, componentes, mascote |
+| `docs/backend.md` | Como a API é escrita por dentro: camadas, DTO, erro, transação, concorrência |
 | `docs/uso-de-ia.md` | Relatório do processo com IA: modelo, ferramentas, prompts, correções |
 | `CLAUDE.md` | Convenções de código e decisões registradas |
 

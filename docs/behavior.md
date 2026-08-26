@@ -11,17 +11,18 @@ Cada tela segue o mesmo esqueleto: **rota · papel · dados · estados · intera
 | Rota | Acesso | Tela | Fase |
 |---|---|---|---|
 | `/` | Público | Catálogo | F1 |
-| `/produtos/:slug` | Público | Página do produto | F1 |
+| `/produtos/:id` | Público | Página do produto | F1 |
 | `/login` | Apenas não autenticado | Login | F2 |
 | `/cadastro` | Apenas não autenticado | Cadastro | F2 |
 | `/carrinho` | `CLIENTE` | Carrinho | F3 |
-| `/checkout` | `CLIENTE` | Endereço e resumo | F4 |
+| `/checkout` | `CLIENTE` | Conferência do pedido | F4 |
 | `/checkout/pagamento` | `CLIENTE` | Pagamento | F4 |
+| `/pedidos` | `CLIENTE` | Histórico de pedidos | F8 |
 | `/pedidos/:id/confirmacao` | `CLIENTE` | Confirmação | F4 |
 | `/pedidos/:id` | `CLIENTE` | Status do pedido | F4 |
-| `/admin/produtos` | `ADMIN` | Listagem administrativa | F5 |
-| `/admin/produtos/novo` | `ADMIN` | Cadastro de produto | F5 |
-| `/admin/categorias` | `ADMIN` | Gestão de categorias | F5 |
+| `/admin/produtos` | `ADMIN` | Listagem administrativa — **sem backend** | F5 |
+| `/admin/produtos/novo` | `ADMIN` | Cadastro de produto — **sem backend** | F5 |
+| `/admin/categorias` | `ADMIN` | Gestão de categorias — **sem backend** | F5 |
 | `/403` | Público | Acesso negado | F0 |
 | `*` | Público | 404 | F0 |
 
@@ -66,7 +67,7 @@ O header é a manifestação mais visível do RBAC e reage a toda mudança de se
 
 ### Interações
 
-- Clicar no cartão abre `/produtos/:slug`.
+- Clicar no cartão abre `/produtos/:id`.
 - Selecionar categoria aplica o filtro, **volta para a página 1** e atualiza a query string.
 - Buscar aplica atraso de 300 ms antes de disparar a requisição, e também volta para a página 1.
 - Paginar preserva filtro e busca, e rola para o topo da grade.
@@ -98,7 +99,7 @@ Isso torna a listagem compartilhável, faz o botão voltar do navegador funciona
 
 ---
 
-## 4. Página do produto — `/produtos/:slug`
+## 4. Página do produto — `/produtos/:id`
 
 **Papel**: público · **Dados**: `Produto`
 
@@ -125,7 +126,7 @@ Isso torna a listagem compartilhável, faz o botão voltar do navegador funciona
 
 ### Casos de borda
 
-- Slug inexistente → 404, não tela em branco.
+- Id inexistente → 404, não tela em branco.
 - Produto inativo → 404 para o público; visível na área administrativa.
 - Estoque cai para zero entre a listagem e a abertura → a página do produto mostra indisponível; o estado da listagem estava obsoleto e isso é aceitável.
 
@@ -316,17 +317,19 @@ um valor só, e o servidor procura nos dois campos.
 
 ## 8. Checkout — `/checkout`
 
-**Papel**: `CLIENTE` · **Dados**: `Endereco`, `Carrinho`
+**Papel**: `CLIENTE` · **Dados**: `Carrinho`, `Pedido`
 
-Primeira etapa: endereço e conferência.
+Conferência e criação do pedido. **Não há endereço**: o escopo não tem entrega.
 
 ### Comportamento
 
-- **Ao entrar, revalida preço e estoque** (RF-CHK-08). Divergência bloqueia o avanço até o usuário decidir.
-- Formulário de endereço com CEP, logradouro, número, complemento, bairro, cidade e UF.
-- CEP normalizado para 8 dígitos, exibido como `00000-000`.
-- Resumo do pedido lateral no desktop, abaixo no celular, com o total sempre visível.
-- Avançar leva a `/checkout/pagamento`.
+- Mostra as linhas do carrinho com o total, do jeito que o servidor as devolve.
+- **Divergência bloqueia o avanço** (RF-CHK-08). As duas que a leitura do carrinho já
+  entrega: `precoDivergiu` e `estoqueDisponivel` menor que a quantidade. O aviso leva
+  de volta ao carrinho para ajustar.
+- Confirmar chama `POST /api/pedidos` — **sem corpo**, com um `Idempotency-Key`
+  gerado uma vez por montagem da tela. O pedido nasce do carrinho do servidor.
+- Sucesso leva a `/checkout/pagamento?pedido=<id>`.
 
 ### Guardas
 
@@ -337,84 +340,85 @@ Primeira etapa: endereço e conferência.
 ### Acessibilidade
 
 - Indicador de etapas com `aria-current="step"`.
-- Campos agrupados em `fieldset` com `legend` "Endereço de entrega".
-- `autoComplete`: `postal-code`, `address-line1`, `address-level2`.
+- Erro de criação em `role="alert"`.
+- O botão fica `aria-busy` e desabilitado enquanto a requisição corre — submissão
+  duplicada não passa (RF-CHK-09).
 
 ---
 
 ## 9. Pagamento — `/checkout/pagamento`
 
-**Papel**: `CLIENTE` · **Dados**: `RequisicaoPagamento`, `ResultadoPagamento`
+**Papel**: `CLIENTE` · **Dados**: `RequisicaoPagamento`, `Pagamento`, `Pedido`
 
-A tela começa com a escolha da forma de pagamento. O que vem depois muda; o
-contrato, não — as duas terminam num `ResultadoPagamento`.
+Escolha da forma de pagamento e acompanhamento do desfecho. **A tela não coleta nada
+além do método**: não há número de cartão, titular, validade, CVV nem parcelamento.
+O que não é coletado não precisa ser protegido.
 
-| Forma | Como resolve |
-|---|---|
-| Cartão de crédito | Na mesma requisição: aprova ou recusa |
-| Pix | Abre uma cobrança com prazo; o desfecho chega depois |
+### Comportamento
 
-### Cartão
+1. Dois cartões de opção — `CARTAO` e `PIX`.
+2. Confirmar chama `POST /api/pedidos/{id}/pagamentos` com `{ metodo }` e recebe
+   **202**: a cobrança foi enfileirada, não decidida.
+3. A tela passa a **acompanhar**: consulta as tentativas em intervalo curto enquanto
+   `processadoEm` for `null`, e para assim que houver desfecho.
+4. `APROVADO` leva a `/pedidos/:id/confirmacao`. `RECUSADO` mostra o motivo e oferece
+   nova tentativa, com o pedido intacto em `PENDENTE`.
 
-Número, nome do titular, validade, código de segurança e **parcelamento**. O
-select mostra o valor de cada parcela já calculado — 1, 2, 3, 6 ou 12 vezes, sem
-juros. À vista aparece como "À vista", não como "1×".
-
-Estado dedicado de processamento, sem opção de voltar, enquanto a requisição
-corre.
-
-### Pix
-
-QR code, código copia e cola, valor e um contador de **5 minutos**.
-
-- O contador sai do `expiraEm` que o servidor devolveu, não de uma duração
-  iniciada na tela: recarregar a página não ganha tempo extra.
-- O botão "Copiar" leva o código para a área de transferência; se o navegador
-  negar a permissão, o campo continua selecionável.
-- Passados os 5 minutos, o QR sai da tela e entra o aviso de expiração com a
-  ação de gerar outro código. Os itens continuam no carrinho.
-- **A chave é fictícia.** O QR é um QR de verdade, mas não existe recebedor.
-
-No mundo real quem avisa que o Pix caiu é o banco, por webhook, e a tela apenas
-consulta o pedido. Na fase mockada o gatilho é o botão "Já fiz o pagamento" —
-sem ele, o fluxo dependeria de um serviço externo que não existe aqui.
+O acompanhamento é `useQuery` com `refetchInterval` condicional, não `setInterval` na
+tela: a consulta para sozinha quando o dado chega, e não sobrevive à desmontagem.
 
 ### Estados
 
 | Estado | Tela |
 |---|---|
-| Escolha | Dois cartões de opção, com o que cada forma implica |
-| Formulário do cartão | Campos e total em destaque |
-| Processando cartão | Tela dedicada, sem opção de voltar |
-| Aguardando Pix | QR, copia e cola, contador |
-| Pix expirado | Aviso e ação de gerar novo código |
-| Aprovado | Redireciona para `/pedidos/:id/confirmacao` |
-| Recusado | Motivo e nova tentativa, com o carrinho intacto |
-| Erro de rede | "Não foi possível confirmar o pagamento", com orientação para verificar antes de repetir |
+| Escolha | Dois cartões de opção, com o total do pedido |
+| Enfileirado | "Processando pagamento", com a tentativa `PENDENTE` visível |
+| Aprovado | Redireciona para a confirmação |
+| Recusado | Motivo da recusa e ação de tentar de novo |
+| Erro de rede | "Não foi possível confirmar o pagamento", com orientação para consultar o pedido antes de repetir |
 
 ### Regras obrigatórias de segurança
 
-- **Nenhum dado de cartão sai do estado do formulário.** Nunca em store, `localStorage`, `sessionStorage`, cache de query ou log.
-- O pagamento é **mutation**, jamais query: query indexa o cache pelos argumentos.
-- Ao desmontar a tela, o estado do formulário é descartado.
-- Submissão duplicada bloqueada por travamento do botão mais verificação de requisição em andamento (RF-CHK-09).
+- **Nenhum dado de cartão existe** — nem no formulário, nem em store, cache ou log.
+- O pagamento é **mutation**, jamais query.
+- Submissão duplicada bloqueada pelo botão travado mais verificação de requisição em
+  andamento (RF-CHK-09). Do lado do servidor, tentativa `PENDENTE` já aberta devolve a
+  mesma, sem criar outra.
 
-### Regra do mock
+### Desfecho do gateway simulado
 
-| Situação | Resultado |
-|---|---|
-| Cartão terminado em `0000` | `RECUSADO` — "Saldo insuficiente" |
-| Cartão terminado em `1111` | `RECUSADO` — "Cartão expirado" |
-| Qualquer outro cartão | `APROVADO` |
-| Pix confirmado dentro do prazo | `APROVADO` |
-| Pix confirmado depois do prazo | `RECUSADO` — "O prazo do Pix expirou" |
+Determinístico, pelo **último dígito do total em centavos**: `3` recusa por
+"Saldo insuficiente", `8` por "Cartão bloqueado", e qualquer outro aprova.
+
+### Pix — sem backend
+
+A opção aparece na tela, mas o fluxo é o mesmo do cartão: só `CARTAO` percorre o
+caminho completo. Os componentes de QR, copia e cola e contador de 5 minutos existem
+em `features/checkout/componentes/` e nenhuma rota os alimenta.
 
 ### Casos de borda
 
-- Recusa: o pedido fica `FALHOU` e é recuperável; o carrinho **não** é esvaziado.
-- Erro de rede depois do envio: o desfecho é desconhecido. A tela orienta a verificar antes de tentar de novo, em vez de sugerir uma nova submissão que poderia duplicar a cobrança.
-- Recarregar durante o processamento: ao voltar, consulta o estado do pedido em vez de reenviar.
-- Pedido já pago ao abrir a tela: vai direto para a confirmação.
+- Recusa: o pedido continua **`PENDENTE`** — não vai para `FALHOU` — e o cliente tenta
+  de novo. O histórico guarda cada tentativa.
+- Falta de estoque na hora de aprovar: a tentativa é recusada e o **pedido é
+  cancelado**, porque a compra não tem como se completar.
+- Erro de rede depois do envio: o desfecho é desconhecido; a tela orienta a consultar o
+  pedido em vez de reenviar, que poderia abrir uma segunda cobrança.
+- Recarregar durante o processamento: ao voltar, consulta o pedido e as tentativas em
+  vez de reenviar.
+- Pedido já pago ao abrir a tela: vai direto para a confirmação. O servidor responde
+  409 a uma nova cobrança.
+
+---
+
+## 9-A. Histórico de pedidos — `/pedidos`
+
+**Papel**: `CLIENTE` · **Dados**: `Pagina<Pedido>`
+
+Lista os pedidos do dono do token, mais recentes primeiro, paginada (10 por página,
+teto de 50). Cada linha mostra status, total, data e leva ao detalhe.
+
+Pedido de outra pessoa não aparece aqui e responde **404** no detalhe — nunca 403.
 
 ---
 
@@ -422,19 +426,17 @@ sem ele, o fluxo dependeria de um serviço externo que não existe aqui.
 
 **Papel**: `CLIENTE` · **Dados**: `Pedido`
 
-Mascote feliz, número do pedido em destaque, **resumo do pagamento**, itens,
-totais, endereço de entrega e comprador.
+Mascote feliz, id do pedido em destaque, **resumo do pagamento**, itens e total.
+Não há endereço de entrega nem cópia dos dados do comprador — o pedido aponta para o
+usuário, e é só.
 
 O resumo do pagamento fica separado dos itens porque responde outra pergunta: os
-itens dizem **o que** foi comprado, o resumo diz **como** foi pago.
+itens dizem **o que** foi comprado, o resumo diz **como** foi pago. E o que ele mostra
+é o que existe: **método, valor e data**. Sem bandeira, sem quatro últimos dígitos,
+sem parcelamento — esses dados nunca entraram no sistema.
 
-| Forma | O que aparece |
-|---|---|
-| Cartão | Bandeira, quatro últimos dígitos, parcelamento e valor da parcela |
-| Pix | Apenas a forma e a data — não há dado de instrumento a mostrar |
-
-- **O carrinho é esvaziado somente aqui**, depois da aprovação confirmada (RF-CHK-07).
-- O login do comprador aparece **mascarado quando é documento**: `***.444.777-**`. Login que é e-mail aparece inteiro, já que está logo acima no campo de contato.
+- **O carrinho já não tem itens quando se chega aqui**: ele vira `CONVERTIDO` no
+  servidor ao gerar o pedido (RF-CHK-07).
 
 ### Imprimir comprovante
 
@@ -448,48 +450,58 @@ graça, e o resultado em preto e branco seria ilegível.
 
 ### Casos de borda
 
-- Acessar a confirmação de um pedido de outro usuário → `/403`.
-- Pedido em estado `PENDENTE` ou `FALHOU` → redireciona para a tela de status, que mostra o estado real.
+- Acessar a confirmação de um pedido de outro usuário → **404**, não 403: a API trata pedido alheio como inexistente, e 403 confirmaria que o id existe.
+- Pedido ainda `PENDENTE` → redireciona para a tela de status, que mostra o estado real e as tentativas de cobrança.
 - Recarregar a página → funciona; a tela lê o pedido pelo id, não depende de estado em memória.
 
 ---
 
 ## 10.1. Status do pedido — `/pedidos/:id`
 
-**Papel**: `CLIENTE` · **Dados**: `Pedido` · **Cobre**: RF-PED-01 a RF-PED-04
+**Papel**: `CLIENTE` · **Dados**: `Pedido`, `Pagamento[]` · **Cobre**: RF-PED-01 a RF-PED-04
 
-Tela de consulta, separada da confirmação. A confirmação é o desfecho imediato da compra; esta é a que o cliente reabre depois, pelo link ou pelo número do pedido.
+Tela de consulta, separada da confirmação. A confirmação é o desfecho imediato da
+compra; esta é a que o cliente reabre depois, pelo link ou pelo histórico.
 
 | `status` | Como aparece | Ação disponível |
 |---|---|---|
-| `PENDENTE` | "Aguardando confirmação do pagamento" | Atualizar |
+| `PENDENTE` | "Aguardando confirmação do pagamento", com a última tentativa | **Pagar** ou tentar de novo |
 | `PAGO` | "Pagamento aprovado" com data | Voltar ao catálogo |
-| `FALHOU` | "Pagamento recusado" com o motivo | **Tentar pagar de novo** |
-| `CANCELADO` | "Pedido cancelado" | Voltar ao catálogo |
+| `CANCELADO` | "Pedido cancelado" com o motivo | Voltar ao catálogo |
+| `FALHOU` | Previsto no modelo e **não alcançado hoje** — recusa mantém o pedido `PENDENTE` | — |
 
 **Regras**
-- Mostra itens congelados, totais, endereço e o documento do comprador **mascarado**.
-- Pedido `PENDENTE` consulta o estado ao abrir; não faz polling agressivo.
-- Pedido de outro usuário responde `/403` — nunca 404, que já entregaria a informação de que o pedido existe ou não.
-- Em `FALHOU`, a nova tentativa reabre `/checkout/pagamento` com o mesmo pedido, sem recriar o carrinho.
+- Mostra os itens congelados e o total, mais o **histórico de tentativas de
+  pagamento**: método, status, motivo da recusa e data de cada uma. Não há endereço
+  nem dados do comprador na tela.
+- Enquanto houver tentativa com `processadoEm` nulo, a tela **acompanha** em intervalo
+  curto e para sozinha quando o desfecho chega. Pedido resolvido não fica consultando.
+- Pedido de outro usuário responde **404** — a API trata pedido alheio como
+  inexistente, e 403 confirmaria que o id existe.
+- Recusa não perde a compra: a nova tentativa parte do mesmo pedido, ainda `PENDENTE`,
+  sem recriar carrinho.
 
 ---
 
 ## 11. Área administrativa
 
+> **Sem backend.** As telas desta seção existem no front e não têm endpoint de
+> escrita: `/api/admin/**` está reservado na configuração de segurança e vazio.
+> O comportamento descrito aqui é o especificado, não o que roda hoje.
+
 **O administrador não navega a loja.** Ele não compra, e ver o catálogo como
 cliente só criaria a dúvida de qual visão está valendo. Quem tem o papel `ADMIN`
-e abre `/` ou `/produtos/:slug` é levado para `/admin/produtos`; o cabeçalho não
+e abre `/` ou `/produtos/:id` é levado para `/admin/produtos`; o cabeçalho não
 mostra o link do catálogo nem o contador do carrinho, e o logo aponta para a
 área administrativa.
 
 ### 11.1 Listagem — `/admin/produtos`
 
 É a **única** visão de produtos que o administrador tem, então a linha mostra
-tudo que ele precisa para operar: imagem, nome, SKU, categoria, unidade, preço,
+tudo que ele precisa para operar: imagem, nome, categoria, unidade, preço,
 estoque e situação.
 
-Filtro por categoria e por situação, busca por nome ou SKU, ordenação por menor
+Filtro por categoria e por situação, busca por nome, ordenação por menor
 estoque — o que está acabando aparece primeiro. Produtos inativos aparecem,
 sinalizados. Estoque de 10 ou menos recebe destaque de `alerta` **com rótulo**
 ("8 em estoque · acabando"), nunca só cor. No celular a tabela vira lista de
@@ -512,7 +524,6 @@ contexto.
 | Campo | Validação |
 |---|---|
 | Nome | 3 a 120 caracteres |
-| SKU | 3 a 40 caracteres, único |
 | Descrição | 10 a 2000 caracteres |
 | Preço | Aceita "19,90" e converte para `1990` antes de enviar |
 | Unidade | Select com os valores de `Unidade` |

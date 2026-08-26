@@ -221,6 +221,46 @@ commits são meus, com mensagem minha.
 
 ---
 
+### Os padrões do backend, e de onde cada um veio
+
+O backend tem hoje um conjunto de regras fixas — camadas, DTO em `in`/`out`, erro
+padronizado, outbox, lock pessimista, teste sem banco. Elas estão em `docs/backend.md`
+e no `CLAUDE.md`, mas nenhuma nasceu pronta. A origem de cada uma diz bastante sobre
+como o trabalho foi dividido:
+
+| Padrão | De onde veio |
+|---|---|
+| Camadas `controllers → service → infrastructure` | Proposto pela IA na primeira fatia e mantido. Nunca foi ponto de discussão |
+| `record` para todo DTO | Proposto pela IA, aceito de imediato |
+| Pastas `in/` e `out/` | **Meu.** Havia um pacote só de DTOs; pedi a separação por direção — e recusei o `package-info.java` que veio junto |
+| Nomes em português no domínio | **Meu**, desde o segundo dia de projeto, antes do backend existir |
+| `idPublico` no contrato, `id` interno | Proposto pela IA junto com o schema. Aceito: id sequencial exposto é enumerável |
+| Dono sempre pelo `sub` do token | Proposto pela IA. A alternativa nunca chegou a ser escrita |
+| Recurso alheio responde 404, não 403 | Proposto pela IA, com a justificativa correta. Aceito |
+| Lock **pessimista** | **Meu.** A proposta era `@Version` e lock otimista; respondi "utilize lock pessimista... por enquanto" e o `@Version` saiu do mapeamento |
+| Outbox transacional | **Meu, e antecipado.** Quando descartei a tabela de reservas, mandei manter `tb_outbox_eventos` "pois futuramente irei adicionar mensageria". Ela ficou sem uso por dias, e foi o que permitiu a fatia de RabbitMQ entrar sem tocar no schema |
+| Pagamento assíncrono com 202 | **Meu**, via PRD escrito antes do código |
+| Gateway atrás de interface | Proposto pela IA no plano. A **regra** do fake eu reescrevi: decidir pelo final do cartão obrigava a trafegar dado de cartão só para simular |
+| Teste sem banco | **Meu.** A suíte tinha vindo com Testcontainers; mandei tirar. A consequência sobre o desenho — conta de domínio em método Java, não em `@Formula` — precisou ser explicada e virou linha no `CLAUDE.md` |
+| Estoque só na aprovação | Enunciado, reforçado por mim contra propostas de reserva e de tela de movimentação |
+| `hasRole("CLIENTE")` nas rotas de compra | **Nasceu de um bug.** ADMIN conseguiu criar carrinho num teste manual: o front escondia o botão e a API aceitava |
+| Locale ICU `pt-BR` no banco | **Nasceu de um bug.** Busca por `agua` não achava `Água Sanitária` |
+| Handler de 404 para rota inexistente | **Nasceu de um bug.** O handler genérico de `Exception` engolia `NoResourceFoundException` e devolvia 500 |
+| Nome de arquivo igual ao da classe | **Nasceu de um bug**, e de um diagnóstico errado antes do certo: o erro real fez o Lombok parecer quebrado |
+| `UsuarioUtils.getUser` em `utils/` | **Meu**, na revisão final: o mesmo método privado estava duplicado em dois serviços |
+| Fila só existe com produtor e consumidor | **Meu.** A topologia de `pedidos.pagos` foi declarada "pronta para o futuro" e removida por decisão minha |
+
+O padrão que se repete: **a IA acerta a forma, eu decido a política.** Camada, record,
+nome de exceção, mapeamento — isso veio pronto e bom. Concorrência, escopo, o que se
+persiste, o que se testa e o que não se constrói ainda: cada um desses foi decidido
+contra uma proposta razoável que tinha vindo diferente.
+
+E um terço deles não foi decidido por ninguém: nasceu de bug encontrado com a
+aplicação de pé, que é o argumento mais forte deste relatório a favor de rodar antes
+de acreditar.
+
+---
+
 ## 6. Problemas encontrados
 
 ### Bugs reais no código gerado

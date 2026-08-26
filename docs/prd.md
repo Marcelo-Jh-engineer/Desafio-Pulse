@@ -203,8 +203,8 @@ sistema guarda e o que trafega: só dígitos.
 
 | ID | Requisito | Papel | Prio | Fase |
 |---|---|---|---|---|
-| RF-ADM-01 | Listar produtos, ativos e inativos, com SKU, categoria, unidade, preço e estoque | ADMIN | P0 | F5 |
-| RF-ADM-02 | Cadastrar produto com nome, SKU, descrição, preço, unidade, imagem, categoria e estoque inicial | ADMIN | P0 | F5 |
+| RF-ADM-01 | Listar produtos, ativos e inativos, com categoria, unidade, preço e estoque | ADMIN | P0 | F5 |
+| RF-ADM-02 | Cadastrar produto com nome, descrição, preço, unidade, imagem, categoria e estoque inicial | ADMIN | P0 | F5 |
 | RF-ADM-03 | **Alterar o preço de um produto**, na própria linha da listagem | ADMIN | P0 | F5 |
 | RF-ADM-05 | Gerenciar categorias: listar, criar, renomear, ativar e desativar | ADMIN | P0 | F5 |
 | RF-ADM-08 | Sinalizar produtos com estoque baixo, com cor **e** rótulo | ADMIN | P2 | F5 |
@@ -288,7 +288,26 @@ e mantê-la isolada deixa a porta aberta caso a decisão mude.
 
 ## 6. Fases do projeto
 
-Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rodaram com dados mockados; a 6 trocou a fonte e removeu o mock.
+Cada fase é entregável, testável e não quebra a anterior. As fases 1 a 5 rodaram com
+dados mockados; a 6 trocou a fonte e removeu o mock; a 8 construiu o backend que hoje
+serve tudo.
+
+### Onde o projeto está — leia isto antes das fases
+
+As fases abaixo são o **registro do que foi planejado e executado**, na ordem em que
+aconteceu. Nem tudo se concretizou como escrito, e três diferenças importam:
+
+| Planejado | O que ficou de pé |
+|---|---|
+| Endereço de entrega no checkout (F4) | **Cortado.** Não há entrega no escopo; o tipo saiu do banco, da API e do front |
+| Cartão com número, titular, validade, CVV e parcelas (F4) | **Cortado.** O pagamento manda só `{ metodo }`; nenhum dado de cartão existe em lugar nenhum |
+| Pix com QR e prazo de 5 minutos (F4) | **Sem backend.** A tela existe; nenhuma rota a atende |
+| Pagamento resolvido na requisição (F4) | **Assíncrono.** A cobrança responde 202 e é decidida por um consumidor de fila |
+| `sku` e `slug` (F1, F5) | **Removidos** de categoria, produto e item de carrinho |
+| Painel do admin com escrita (F5) | **Sem backend.** As telas existem; `/api/admin/**` está reservado e vazio |
+
+O que fecha ponta a ponta hoje: catálogo público, sessão, carrinho, pedido, pagamento
+assíncrono e baixa de estoque na aprovação.
 
 ### F0 — Fundação
 **Entrega**: Vite, React e TypeScript `strict`; Tailwind com os tokens de `docs/design.md`; shadcn/ui; ESLint e Prettier; alias `@/`; estrutura de pastas; cliente HTTP encapsulado; React Router com layout base (header, footer, mascote); páginas 404 e 403.
@@ -322,20 +341,40 @@ A revalidação de preço e de estoque contra a API é da F4 (RF-CHK-08), no che
 
 **A ordem das etapas sustenta as garantias.** O pedido é criado ao fim da etapa de endereço, não no pagamento. Isso dá três coisas de graça: o `pedidoId` que a requisição de pagamento exige; a possibilidade de recarregar a tela e consultar o estado em vez de reenviar; e a nova tentativa em pedido `FALHOU` reabrindo o mesmo pedido, sem recriar carrinho.
 
-**A baixa de estoque acontece na transição para `PAGO`** — nunca na montagem do carrinho nem na criação do pedido. Enquanto o pedido está `PENDENTE` o estoque não foi debitado, e é exatamente por isso que o checkout revalida.
+**A baixa de estoque acontece na transição para `PAGO`** — nunca na montagem do carrinho nem na criação do pedido. Enquanto o pedido está `PENDENTE` o estoque não foi debitado, e é exatamente por isso que a disponibilidade é revalidada antes de aprovar.
+
+> **O que mudou na F8.** Endereço, dados de cartão, parcelamento e Pix saíram: o pedido nasce do carrinho do servidor, sem corpo, e a cobrança manda só `{ metodo }`. O pagamento deixou de resolver na requisição — responde **202** e é decidido por um consumidor de fila. E a nova tentativa acontece em pedido `PENDENTE`, não em `FALHOU`: recusa não muda o estado do pedido.
 
 ### F5 — Área administrativa (mock)
 **Cobre**: RF-ADM-01, RF-ADM-02, RF-ADM-03, RF-ADM-05 e RF-ADM-08.
-**Entrega**: listagem com filtro por categoria e situação, busca por nome ou SKU, ordenada por menor estoque; alteração de preço na própria linha; cadastro de produto; gestão de categorias; alerta de estoque baixo com rótulo, não só cor.
+**Entrega**: listagem com filtro por categoria e situação, busca por nome, ordenada por menor estoque; alteração de preço na própria linha; cadastro de produto; gestão de categorias; alerta de estoque baixo com rótulo, não só cor.
+
+> **Sem backend.** As telas existem e não têm endpoint de escrita: `/api/admin/**` está reservado na configuração de segurança e vazio. `sku` e `slug` foram removidos do modelo — a busca administrativa é por nome, e a chave estável é o `idPublico`.
 **Pronto quando**: o preço muda sem sair da listagem e o catálogo público reflete na hora; desativar categoria com produtos vinculados avisa antes; o administrador não consegue abrir o catálogo nem o carrinho.
 
 **O administrador opera um recorte estreito de propósito.** Ele cadastra produto, ajusta preço e organiza categorias. Não movimenta estoque — esse caminho é a venda — e não navega a loja. Duas visões do mesmo catálogo criariam a dúvida de qual está valendo.
 
-O endpoint administrativo de produto busca por **id**, não por slug: a listagem trabalha com a chave estável, que não muda quando o nome do produto é editado. O catálogo público continua indexando por slug, que é o que aparece na URL.
+O produto é identificado por **`idPublico`**, tanto no painel quanto na loja: é a chave estável, que não muda quando o nome é editado. Não há slug em lugar nenhum — a URL do produto usa o id.
 
 ### F6 — Integração com o backend (dados reais)
 **Entrega**: mock removido do projeto; `VITE_API_BASE_URL` apontando para a API Spring; renovação de token; tratamento dos erros reais; ajuste de contrato se algo divergir.
 **Pronto quando**: a aplicação funciona ponta a ponta contra o backend **sem alteração em componente, hook ou chave de query**. Se algum componente precisar mudar, a estratégia de mock falhou e o desvio precisa ser documentado.
+
+### F8 — Backend (o que passou a servir os dados)
+
+**Entrega**: PostgreSQL 16 com migrations Flyway e mapeamento JPA; Keycloak 26 com
+realm importado e a API como Resource Server; `/api/autenticacao` como proxy, com
+refresh token em cookie `HttpOnly`; catálogo público com paginação, busca por nome e
+filtro por categoria; imagem servida do banco; carrinho como estado de servidor;
+pedido a partir do carrinho, com idempotência; pagamento assíncrono com RabbitMQ e
+outbox transacional; baixa de estoque sob lock pessimista na aprovação; 78 testes com
+Mockito, sem banco; Swagger com injeção de JWT; tudo em `docker compose up`.
+
+**Pronto quando**: o ciclo catálogo → login → carrinho → pedido → pagamento → estoque
+funciona contra a API real, com o desfecho da cobrança chegando pela fila; ADMIN não
+consegue comprar nem pela API; recarregar a página não desloga.
+
+Os padrões desse código estão em `docs/backend.md`.
 
 ### F7 — Hardening
 **Entrega**: auditoria de acessibilidade com teclado e leitor de tela; conferência manual dos fluxos críticos (comprar por cartão, comprar por Pix, logar, cadastrar, ajustar preço); orçamento de performance; revisão de todos os estados de erro; revisão de segurança contra a seção 5.4.
@@ -349,9 +388,10 @@ O endpoint administrativo de produto busca por **id**, não por slug: a listagem
 > projeto: `Front/src/mocks/`, o worker e a dependência `msw` foram apagados, e
 > não existe mais `VITE_API_MODE`. O front fala com a API de verdade, sempre.
 >
-> O que a API ainda não expõe — carrinho, checkout, pedidos e o painel do admin
-> — deixou de funcionar, de propósito: a alternativa era manter essas telas
-> respondendo a um servidor imaginário e descobrir a diferença só na integração.
+> O que a API não expõe deixa de funcionar, de propósito: a alternativa era manter
+> a tela respondendo a um servidor imaginário e descobrir a diferença só na
+> integração. Carrinho, checkout e pedidos ganharam backend na F8; **o painel do
+> admin e o Pix seguem sem endpoint**.
 >
 > Esta seção fica como registro da decisão e do que ela entregou. O veredito
 > está em 7.2: o código de aplicação não mudou ao trocar de fonte — mudou o
@@ -393,17 +433,24 @@ Três utilitários escritos à mão, curtos e testáveis, em vez de três depend
 
 | Utilitário | Conteúdo | Dispensa |
 |---|---|---|
-| `lib/token-simulado.ts` | `criarToken()` e `lerToken()`, base64 de um objeto simples | `jwt-decode` |
+| `lib/token.ts` | Decodifica a carga do JWT do Keycloak e lê os papéis, cerca de 60 linhas. Não verifica assinatura — quem valida é o backend, a cada chamada | `jwt-decode` |
 | `lib/documento.ts` | `validarCpf()`, `validarCnpj()`, `detectarTipoDocumento()`, `detectarTipoIdentificador()`, `normalizarDocumento()`, cerca de 40 linhas | `cpf-cnpj-validator` |
-| `lib/formato.ts` | `formatarDocumento()`, `mascararDocumento()`, `formatarPreco()`, `formatarCep()` | `react-imask` |
+| `lib/formato.ts` | `formatarDocumento()`, `mascararDocumento()`, `formatarPreco()` | `react-imask` |
 
-### 7.6 O token da fase mockada
+### 7.6 O token — da simulação ao JWT
 
-**Não é um JWT.** É uma única string base64 com o que a interface precisa para se montar: id, nome, e-mail e papéis. Sem header, sem assinatura, sem expiração — nada disso teria sentido sem um servidor do outro lado para emitir e conferir.
+Na fase mockada o "token" era uma string base64 com id, nome, e-mail e papéis: sem
+header, sem assinatura, sem expiração — nada disso teria contraparte sem servidor.
 
-Isso é seguro porque **o front usa o token só para montar a interface, nunca para autorizar**. Quando o backend entrar na F6, `lib/token-simulado.ts` é trocado por um decodificador de JWT de verdade; o resto da aplicação não muda, porque só consome `ConteudoDoToken`.
+**A troca aconteceu, e foi barata.** Hoje o token é um **JWT de verdade**, emitido
+pelo Keycloak e conferido pelo backend em toda requisição. `lib/token-simulado.ts`
+virou `lib/token.ts`, que decodifica a carga e lê os papéis sem verificar assinatura —
+verificar do lado do cliente não provaria nada. O resto da aplicação não mudou, porque
+só consome `ConteudoDoToken`.
 
-A regra que sobrevive à troca: **os papéis saem do token, nunca do corpo da resposta**. É o token que o backend vai conferir.
+A regra que sobreviveu à troca, e que era o ponto: **os papéis saem do token, nunca do
+corpo da resposta.** O que o front faz com eles é montar a interface; autorizar é
+sempre do servidor.
 
 ---
 
@@ -417,9 +464,18 @@ A regra que sobrevive à troca: **os papéis saem do token, nunca do corpo da re
 | `sessionStorage` | Alto | Sim, na aba | Alternativa, se o backend não oferecer o cookie |
 | `localStorage` | Alto e persistente | Sim | **Rejeitada** |
 
-**Dependência da F6**: se o backend não expuser renovação por cookie `httpOnly`, o fallback é `sessionStorage`, com o risco de XSS anotado e mitigado pela ausência de `dangerouslySetInnerHTML` e pela validação de toda entrada.
+**Como ficou.** O backend expõe a renovação por cookie, e o fallback de
+`sessionStorage` não foi necessário. O access token dura **5 minutos** e vive só na
+memória; o refresh vive **10 horas** num cookie `HttpOnly` com `Path=/api/autenticacao`,
+que o JavaScript não lê nem envia — `POST /api/autenticacao/renovar` vai sem corpo e o
+navegador anexa o cookie sozinho.
 
-Na fase mockada o comportamento é idêntico ao planejado para o real, para que a F6 não mude nada.
+Duas consequências que só apareceram no uso real, e estão registradas no `README.md`:
+o refresh **gira** a cada renovação, então duas renovações concorrentes derrubavam a
+sessão inteira — corrigido com `refreshTokenMaxReuse: 1` no realm e uma trava de
+renovação única em `lib/http.ts`; e os guardas de rota precisam **esperar** a
+restauração, senão decidem com a sessão vazia e mandam para o login quem tem sessão
+válida.
 
 ---
 
