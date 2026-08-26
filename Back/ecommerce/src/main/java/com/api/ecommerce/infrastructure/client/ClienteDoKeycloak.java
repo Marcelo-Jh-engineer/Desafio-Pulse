@@ -6,6 +6,7 @@ import com.api.ecommerce.dtos.RespostaDeTokenDoKeycloak;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeAutenticacao;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeIdentidade;
+import java.net.URI;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -93,16 +94,23 @@ public class ClienteDoKeycloak {
      * Cria o usuario pela API administrativa, com o token da service account do
      * proprio client — o usuario ainda nao existe, entao nao ha token dele.
      */
-    public void criarUsuario(NovoUsuarioDoKeycloak novo) {
+    public String criarUsuario(NovoUsuarioDoKeycloak novo) {
         String tokenDeServico = tokenDeServico();
         try {
-            http.post()
+            URI localizacao = http.post()
                     .uri(config.urlDeUsuarios())
                     .header("Authorization", "Bearer " + tokenDeServico)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(novo)
                     .retrieve()
-                    .toBodilessEntity();
+                    .toBodilessEntity()
+                    .getHeaders()
+                    .getLocation();
+            if (localizacao == null) {
+                throw new ExcecaoDeIdentidade("O provedor criou o usuario sem devolver seu identificador.");
+            }
+            String caminho = localizacao.getPath();
+            return caminho.substring(caminho.lastIndexOf('/') + 1);
         } catch (RestClientResponseException excecao) {
             if (excecao.getStatusCode() == HttpStatus.CONFLICT) {
                 // O Keycloak nao diz qual dos dois colidiu. Apontar o login e o
@@ -114,6 +122,20 @@ public class ClienteDoKeycloak {
             throw new ExcecaoDeIdentidade("Falha ao criar o usuario no provedor", excecao);
         } catch (RestClientException excecao) {
             throw new ExcecaoDeIdentidade("Falha ao criar o usuario no provedor", excecao);
+        }
+    }
+
+    /** Compensa um cadastro cuja criacao passou, mas a sessao nao foi emitida. */
+    public void excluirUsuario(String id) {
+        String tokenDeServico = tokenDeServico();
+        try {
+            http.delete()
+                    .uri(config.urlDeUsuarios() + "/" + id)
+                    .header("Authorization", "Bearer " + tokenDeServico)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException excecao) {
+            throw new ExcecaoDeIdentidade("Falha ao desfazer a criacao do usuario no provedor", excecao);
         }
     }
 

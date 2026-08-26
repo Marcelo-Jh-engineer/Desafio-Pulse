@@ -18,10 +18,21 @@ public record NovoUsuarioDoKeycloak(
         boolean emailVerified,
         List<Credencial> credentials) {
 
+    /**
+     * O perfil padrao do Keycloak exige `lastName` para liberar o direct grant.
+     * Pessoas com nome de uma palavra continuam validas no dominio; este valor
+     * e apenas a representacao interna da ausencia de sobrenome no provedor.
+     */
+    public static final String SOBRENOME_AUSENTE = "-";
+
     public static NovoUsuarioDoKeycloak de(
             String login, String email, String primeiroNome, String sobrenome, String senha) {
+        String sobrenomeDoProvedor = sobrenome == null || sobrenome.isBlank()
+                ? SOBRENOME_AUSENTE
+                : sobrenome;
         return new NovoUsuarioDoKeycloak(
-                login, email, primeiroNome, sobrenome, true, true, List.of(Credencial.de(senha)));
+                login, email, primeiroNome, sobrenomeDoProvedor,
+                true, true, List.of(Credencial.de(senha)));
     }
 
     /** `temporary=false`: senha definitiva, sem tela de troca no primeiro acesso. */

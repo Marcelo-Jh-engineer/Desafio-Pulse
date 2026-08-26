@@ -48,14 +48,23 @@ public class ServicoDeAutenticacao {
      * no realm, entao todo usuario novo ja nasce com ele.
      */
     public SessaoCriadaDto cadastrar(CadastroDtoIn pedido) {
-        keycloak.criarUsuario(NovoUsuarioDoKeycloak.de(
+        String idCriado = keycloak.criarUsuario(NovoUsuarioDoKeycloak.de(
                 pedido.login(),
                 pedido.email(),
                 primeiroNomeDe(pedido.nome()),
                 sobrenomeDe(pedido.nome()),
                 pedido.senha()));
 
-        return traduzir(keycloak.autenticar(pedido.login(), pedido.senha()));
+        try {
+            return traduzir(keycloak.autenticar(pedido.login(), pedido.senha()));
+        } catch (RuntimeException erroDoLogin) {
+            try {
+                keycloak.excluirUsuario(idCriado);
+            } catch (RuntimeException erroDaCompensacao) {
+                erroDoLogin.addSuppressed(erroDaCompensacao);
+            }
+            throw erroDoLogin;
+        }
     }
 
     /**
