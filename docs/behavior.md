@@ -289,7 +289,7 @@ um valor só, e o servidor procura nos dois campos.
 
 ### Interações
 
-- **Alterar quantidade**: atualização otimista, com reversão se a requisição falhar. Teto igual ao menor valor entre 20 e o estoque disponível. Ao chegar em 0, remove com confirmação.
+- **Alterar quantidade**: cada mudança é uma requisição, e a resposta traz o carrinho recalculado. O teto é o estoque disponível, e nada além dele. Ao chegar em 0, remove com confirmação.
 - **Remover item**: remoção imediata mais toast com "Desfazer" por 5 s.
 - **Recalcular**: o total é recalculado a cada mudança por uma função pura. Não há frete.
 - **Finalizar compra**: leva a `/checkout`. Desabilitado com carrinho vazio.

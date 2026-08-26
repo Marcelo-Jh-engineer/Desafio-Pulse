@@ -369,7 +369,7 @@ export interface Carrinho {
 ```
 
 **Regras**
-- `quantidade` mínima 1, máxima igual ao menor valor entre 20 e `produto.quantidadeEstoque`. Chegar em 0 remove a linha.
+- `quantidade` mínima 1. **Não há teto por linha**: o único limite é `produto.quantidadeEstoque`, conferido pelo servidor a cada adição. Chegar em 0 remove a linha.
 - Adicionar um produto que já está no carrinho **soma** à quantidade existente, respeitando o teto.
 - O snapshot de nome/preço/imagem existe para o carrinho não quebrar se o produto for editado. O preço é **revalidado no checkout**; divergência mostra aviso antes do pagamento.
 - Totais são sempre **derivados**, nunca digitados. `totalLinhaEmCentavos` e os totais do carrinho são recalculados a cada mutação por uma função pura testada.

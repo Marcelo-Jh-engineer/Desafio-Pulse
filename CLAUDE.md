@@ -2,7 +2,9 @@
 
 Monorepo com `Front/` (React) e `Back/` (Java 21 + Spring Boot 3).
 
-**Fase atual: F1 — Catálogo público.** A F0 está concluída (fundação em `Front/`). O backend ainda não existe; os dados vêm de mock até a Fase 6.
+**Fase atual: F6 — integração com o backend.** O backend existe e serve o catálogo público: produtos, busca, categorias e imagem.
+
+**Não há mock em lugar nenhum.** O MSW foi removido do projeto — o front fala com a API de verdade, sempre. O que a API ainda não expõe simplesmente não funciona, em vez de funcionar contra um servidor imaginário. Hoje isso significa **carrinho, checkout, pedidos e o painel do admin**: as telas existem, os endpoints não.
 
 ---
 
@@ -12,7 +14,7 @@ Leia o que for relevante para a tarefa antes de escrever código:
 
 | Arquivo | Quando ler |
 |---|---|
-| `docs/prd.md` | Escopo, requisitos (`RF-*`, `RNF-*`), fases, matriz RBAC, estratégia de mock |
+| `docs/prd.md` | Escopo, requisitos (`RF-*`, `RNF-*`), fases, matriz RBAC |
 | `docs/models.md` | Tipos, contratos de API, regras de negócio, fixtures |
 | `docs/behavior.md` | Comportamento de cada tela, fluxos, estados, casos de borda |
 | `docs/design.md` | Paleta, tokens, tipografia, componentes, mascote |
@@ -38,8 +40,7 @@ Exceções já decididas e registradas:
 
 | Decisão | Motivo |
 |---|---|
-| `msw` como `devDependency` | Único jeito de manter o código de aplicação idêntico entre mock e API real. Não entra no bundle de produção. Detalhes em `docs/prd.md`, seção 7 |
-| Token da fase mockada em `lib/token-simulado.ts` | Não é JWT: uma string base64 com id, nome, email e papéis. Sem assinatura e sem expiração — nada disso faz sentido sem servidor. Vira decodificação de JWT de verdade na F6 |
+| Leitura de JWT à mão em `lib/token.ts` | 60 linhas para decodificar a carga do token e ler os papéis. Nada aqui verifica assinatura — quem valida é o backend, a cada chamada. Dispensa `jwt-decode` |
 | CPF e CNPJ validados à mão em `lib/documento.ts` | 40 linhas. Dispensa `cpf-cnpj-validator` |
 | `qrcode` para o Pix | Codificação de QR é Reed-Solomon e máscara de matriz: escrever à mão seria centenas de linhas propensas a erro, para um resultado que ou funciona ou não. Entra só no pedaço da rota de pagamento |
 | Sem máscara de documento | CPF e CNPJ são digitados **só com números**. O que a pessoa vê é o que o sistema guarda. Dispensa `react-imask` |
@@ -104,7 +105,6 @@ Front/src/
   features/       # catalogo, autenticacao, carrinho, checkout, admin
   components/     # ui/ (shadcn) + compartilhados de dominio
   lib/            # http, jwt, documento, formato, utils
-  mocks/          # handlers MSW + fixtures
   types/          # tipos do dominio (espelham docs/models.md)
   hooks/          # hooks compartilhados
   test/           # setup e utilitarios de teste
@@ -146,10 +146,44 @@ papel para `/admin/produtos`.
 
 - `RotaProtegida` guarda rotas por papel.
 - `<Permitir>` esconde ações dentro de uma tela já acessível.
-- Papéis vêm do token simulado, lido em `lib/token-simulado.ts`. Sempre do **token**, nunca do corpo da resposta.
+- Papéis vêm do JWT, lido em `lib/token.ts`. Sempre do **token**, nunca do corpo da resposta.
 - **401 e 403 são coisas diferentes**: sem sessão leva ao login; com sessão e sem o papel vai para `/403` **preservando** a sessão.
 
 > **A checagem no front é UX, não segurança. A autorização real é sempre do backend.**
+
+---
+
+## Sessão
+
+Recarregar a página **não** desloga. Isso já foi verdade e deixou de ser.
+
+| Peça | Onde vive | Validade |
+|---|---|---|
+| Access token | Memória do front (Zustand) | 5 min |
+| Refresh token | Cookie HttpOnly, `Path=/api/autenticacao` | 10 h |
+
+O access token some no F5; o cookie não. Ao subir, o app chama
+`POST /api/autenticacao/renovar` **sem corpo** — o navegador anexa o cookie
+sozinho — e recebe uma sessão de volta ou um 401, que significa "siga como
+visitante". Login só é pedido de novo quando o cookie expira ou o usuário sai.
+
+Durante a navegação a troca é silenciosa e acontece por dois caminhos: um timer
+que renova um minuto antes do vencimento, e o interceptor de 401 do
+`lib/http.ts` como rede de segurança para quando o timer atrasa — o notebook que
+dormiu, por exemplo.
+
+- **O front nunca manda o refresh token.** Não tem como: o cookie é HttpOnly.
+  `login`, `cadastro`, `renovar` e `sair` trabalham com ele sem que o
+  JavaScript o veja.
+- **O refresh gira a cada renovação** (`revokeRefreshToken` no realm). Duas
+  renovações concorrentes derrubariam a sessão, então existe uma trava de
+  renovação única em `lib/http.ts` e uma no boot, contra a montagem dupla do
+  StrictMode.
+- **Os guardas de rota esperam.** Enquanto `restaurando` está ligado,
+  `RotaProtegida` e `RotaDeLoja` seguram a decisão: decidir com a sessão ainda
+  vazia mandaria para o login quem tem sessão válida.
+- **Só o servidor apaga o cookie.** Limpar o store no logout não bastaria — um
+  F5 traria o usuário de volta logado.
 
 ---
 
@@ -161,7 +195,8 @@ papel para `/admin/produtos`.
 - Documento **nunca** em URL, query string, log ou chave de cache (LGPD).
 - Login exibido mascarado fora do perfil quando é documento.
 - Nenhum dado de cartão persistido em store, storage, cache ou log. No comprovante, só os quatro últimos dígitos.
-- Token em memória, não persistido.
+- **Access token em memória, nunca em `localStorage` nem em cookie legível.** Dura 5 minutos.
+- **O refresh token não passa pelo JavaScript.** Ele vive num cookie HttpOnly de 10h que só o backend emite e apaga — `config/CookieDeSessao.java`. O front nunca o vê, nem para guardar, nem para enviar de volta.
 - Redirecionamento pós-login aceita **apenas** caminho interno.
 
 ---
@@ -179,16 +214,38 @@ npm run format:check    # Prettier em modo verificacao
 npm run verificar-tipos # tsc sem emitir
 ```
 
-**Não há testes automatizados neste projeto — decisão registrada.** Antes de
-entregar: `verificar-tipos`, `lint`, `format:check`, `build` e conferência
-manual na tela.
+Antes de entregar no front: `verificar-tipos`, `lint`, `format:check`, `build` e
+conferência manual na tela.
+
+### Testes no backend
+
+O front não tem testes automatizados — decisão registrada. **O backend tem**, a
+partir do fluxo de carrinho.
+
+**Sem banco nos testes — decisão registrada.** Nada de Testcontainers, nada de
+H2. Os repositórios são dublados com Mockito e as entidades entram como objetos
+comuns: o teste exercita a decisão do serviço, não o driver do PostgreSQL.
+
+O que isso implica no desenho: **conta de domínio fica em método Java, não em
+SQL.** O total do carrinho é `Carrinho.totalEmCentavos()`, e não um `@Formula`
+do Hibernate — o `@Formula` só tem valor depois de um `SELECT`, e sem banco no
+teste ele valeria zero, deixando o total sem como ser verificado.
+
+O que fica fora de cobertura, e é bom saber: `CHECK`, índices parciais e a
+própria migration. Eles continuam valendo em produção; quem os confere é a
+subida da aplicação e a conferência manual.
+
+Não há Maven na máquina; os testes rodam em container:
+
+```
+docker run --rm -v "<repo>/Back/ecommerce:/app" -w /app   -v pulse-m2:/root/.m2 maven:3.9-eclipse-temurin-21 mvn -B test
+```
 
 Variáveis de ambiente:
 
 | Variável | Valores |
 |---|---|
-| `VITE_API_MODE` | `mock` ou `http` |
-| `VITE_API_BASE_URL` | URL da API |
+| `VITE_API_BASE_URL` | Base das chamadas do front. `/api`, mesma origem — o nginx da imagem, ou o proxy do Vite em desenvolvimento, encaminha para a API |
 
 ---
 
@@ -200,11 +257,11 @@ Variáveis de ambiente:
 - Não usar nome de variável de domínio em inglês.
 - Não codificar a lista de categorias no front — vem da API.
 - Não copiar dado de servidor para o Zustand.
-- Não persistir token, documento formatado ou dado de cartão.
+- Não persistir o access token, documento formatado ou dado de cartão.
 - Não tratar 403 como 401.
 - Não deixar o ADMIN entrar na loja.
 - Não criar tela de movimentação de estoque.
-- Não persistir a sessão: ela vive em memória e recarregar a página desloga.
+- Não guardar token em `localStorage`, `sessionStorage` ou cookie legível por script. A sessão sobrevive ao F5 pelo cookie HttpOnly, e por nenhum outro caminho.
 - Não remover indicador de foco.
 - Não usar `dangerouslySetInnerHTML` com conteúdo da API. A única exceção é o SVG do QR code, gerado localmente a partir de uma string que o próprio front montou.
 
