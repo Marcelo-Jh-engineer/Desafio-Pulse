@@ -27,7 +27,7 @@ public class GatewayFakeDePagamento implements GatewayDePagamento {
     public ResultadoDoPagamento processar(long valorEmCentavos) {
         return switch ((int) Math.abs(valorEmCentavos % 10)) {
             case 3 -> ResultadoDoPagamento.recusa("Saldo insuficiente");
-            case 7 -> ResultadoDoPagamento.recusa("Cartão bloqueado");
+            case 8 -> ResultadoDoPagamento.recusa("Cartão bloqueado");
             default -> ResultadoDoPagamento.aprovacao();
         };
     }

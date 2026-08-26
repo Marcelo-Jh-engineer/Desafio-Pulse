@@ -1,11 +1,4 @@
-# ---------------------------------------------------------------
-# API do projeto "Voce no Coracao da Gente"
-#
-# Dois estagios: o primeiro compila com Maven, o segundo carrega so o JRE e o
-# jar. A imagem final nao tem Maven, nem codigo-fonte, nem cache do .m2.
-#
-# Contexto de build: esta pasta (Back/ecommerce).
-# ---------------------------------------------------------------
+
 FROM maven:3.9-eclipse-temurin-21 AS construcao
 
 WORKDIR /construcao
@@ -13,15 +6,8 @@ WORKDIR /construcao
 COPY pom.xml .
 COPY src ./src
 
-# Um passo so, com o .m2 num cache do BuildKit: as dependencias sobrevivem
-# entre builds sem virar camada de imagem, e o segundo build nao baixa nada.
-#
-# `dependency:go-offline` faria o mesmo em teoria, mas resolve o grafo inteiro
-# de plugins de uma vez — trabalho pesado o bastante para derrubar o daemon em
-# maquina apertada, e ainda assim refeito a cada mudanca no pom.
-#
-# Sem testes: o build da imagem nao e o lugar de rodar suite.
-RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests package
+
+RUN --mount=type=cache,target=/root/.m2 mvn -B -Dmaven.test.skip=true package
 
 FROM eclipse-temurin:21-jre-alpine
 
