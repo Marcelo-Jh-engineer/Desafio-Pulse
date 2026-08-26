@@ -46,7 +46,7 @@ public class ServicoDeEstoque {
 
         if (quantidade > disponivel) {
             throw new ExcecaoDeEstoqueInsuficiente(
-                    "Restam apenas " + disponivel + " em estoque.", disponivel);
+                    "Erro ao adicionar ao carrinho, Sua solicitação excede o estoque disponível. Restam apenas " + disponivel + " em estoque.", disponivel);
         }
     }
 
@@ -54,6 +54,6 @@ public class ServicoDeEstoque {
     public boolean temDisponibilidade(Produto produto, int quantidade) {
         return produto.isAtivo()
                 && quantidade >= 1
-                && produto.getQuantidadeEstoque() >= quantidade;
+                && produto.getQuantidadeEstoque() > quantidade;
     }
 }

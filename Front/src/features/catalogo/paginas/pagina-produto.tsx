@@ -13,6 +13,7 @@ import { EsqueletoProduto } from '@/features/catalogo/componentes/esqueleto-prod
 import { TrilhaNavegacao } from '@/features/catalogo/componentes/trilha-navegacao';
 import { useProduto } from '@/features/catalogo/hooks/use-produto';
 import { PaginaNaoEncontrada } from '@/app/paginas/pagina-nao-encontrada';
+import { limitarQuantidade } from '@/lib/carrinho-calculo';
 import { ErroDeAplicacao } from '@/lib/erros';
 import { ROTULO_UNIDADE } from '@/types/dominio';
 import { obterDisponibilidade } from '@/types/catalogo';
@@ -92,7 +93,7 @@ export function PaginaProduto() {
           <Separator />
 
           {indisponivel ? null : (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span id="rotulo-quantidade" className="text-sm font-medium">
                 Quantidade
               </span>
@@ -100,8 +101,13 @@ export function PaginaProduto() {
                 valor={quantidade}
                 estoqueDisponivel={produto.quantidadeEstoque}
                 nomeDoProduto={produto.nome}
-                aoMudar={definirQuantidade}
+                aoMudar={(novaQuantidade) => {
+                  definirQuantidade(limitarQuantidade(novaQuantidade, produto.quantidadeEstoque));
+                }}
               />
+              <span className="text-sm text-muted-foreground">
+                {produto.quantidadeEstoque} em estoque
+              </span>
             </div>
           )}
 

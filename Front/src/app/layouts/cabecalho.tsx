@@ -4,6 +4,7 @@ import { Dentinho } from '@/components/dentinho';
 import { Permitir } from '@/components/permitir';
 import { ContadorCarrinho } from '@/components/contador-carrinho';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTema } from '@/app/provedores/contexto-tema';
 import { useSair } from '@/hooks/use-sair';
 import { useSessaoStore } from '@/lib/sessao-store';
@@ -25,12 +26,15 @@ import { cn } from '@/lib/utils';
 export function Cabecalho() {
   const { temaEfetivo, definirTema } = useTema();
   const autenticado = useSessaoStore((estado) => estado.autenticado);
+  const restaurando = useSessaoStore((estado) => estado.restaurando);
   const usuario = useSessaoStore((estado) => estado.usuario);
   const temPapel = useSessaoStore((estado) => estado.temPapel);
   const sair = useSair();
   const escuro = temaEfetivo === 'dark';
   // Admin nao navega a loja — docs/behavior.md secao 2.
   const ehAdmin = autenticado && temPapel(['ADMIN']);
+
+  if (restaurando) return <EsqueletoCabecalho />;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
@@ -107,6 +111,34 @@ export function Cabecalho() {
               </Button>
             </>
           )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function EsqueletoCabecalho() {
+  return (
+    <header
+      aria-busy="true"
+      aria-label="Carregando cabeçalho"
+      className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur"
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-6 lg:px-8">
+        <div className="flex items-center gap-2" aria-hidden="true">
+          <Skeleton className="size-10 shrink-0 rounded-full" />
+          <div className="hidden space-y-1.5 sm:block">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+
+        <Skeleton className="ml-2 h-9 w-20" />
+
+        <div className="ml-auto flex items-center gap-2" aria-hidden="true">
+          <Skeleton className="size-9 rounded-md" />
+          <Skeleton className="hidden h-9 w-24 sm:block" />
+          <Skeleton className="h-9 w-20" />
         </div>
       </div>
     </header>

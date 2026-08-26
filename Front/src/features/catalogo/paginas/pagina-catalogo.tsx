@@ -4,6 +4,7 @@ import { EstadoErro } from '@/components/estado-erro';
 import { EstadoVazio } from '@/components/estado-vazio';
 import { Button } from '@/components/ui/button';
 import { CampoBusca } from '@/features/catalogo/componentes/campo-busca';
+import { EsqueletoCatalogo } from '@/features/catalogo/componentes/esqueleto-catalogo';
 import { EsqueletoGrade } from '@/features/catalogo/componentes/esqueleto-grade';
 import { FiltroCategorias } from '@/features/catalogo/componentes/filtro-categorias';
 import { GradeProdutos } from '@/features/catalogo/componentes/grade-produtos';
@@ -57,6 +58,8 @@ export function PaginaCatalogo() {
       irParaPagina(produtos.data.pagina);
     }
   }, [produtos.data, produtos.isPlaceholderData, paginaPedida, irParaPagina]);
+
+  if (produtos.isPending) return <EsqueletoCatalogo />;
 
   return (
     <div className="space-y-8">
