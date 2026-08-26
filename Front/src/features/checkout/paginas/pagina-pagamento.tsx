@@ -68,7 +68,7 @@ export function PaginaPagamento() {
         <TituloDaPagina tituloDocumento="Solicitando pagamento">
           Solicitando pagamento
         </TituloDaPagina>
-        <IndicadorEtapas atual={2} />
+        <IndicadorEtapas atual={1} />
         <Card>
           <CardContent
             role="status"
@@ -95,7 +95,7 @@ export function PaginaPagamento() {
   return (
     <div className="space-y-6">
       <TituloDaPagina tituloDocumento="Pagamento">Pagamento</TituloDaPagina>
-      <IndicadorEtapas atual={2} />
+      <IndicadorEtapas atual={1} />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <Card>

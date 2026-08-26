@@ -1,10 +1,10 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ETAPAS = ['Endereço', 'Pagamento', 'Confirmação'] as const;
+const ETAPAS = ['Pagamento', 'Confirmação'] as const;
 
 /** `aria-current="step"` marca onde o usuario esta — docs/behavior.md secao 8. */
-export function IndicadorEtapas({ atual }: { atual: 1 | 2 | 3 }) {
+export function IndicadorEtapas({ atual }: { atual: 1 | 2 }) {
   return (
     <nav aria-label="Etapas do checkout">
       <ol className="flex items-center gap-2">

@@ -59,11 +59,6 @@ export function formatarPreco(centavos: number): string {
   );
 }
 
-/** `00000-000` */
-export function formatarCep(valor: string): string {
-  const digitos = apenasDigitos(valor).slice(0, 8);
-  return digitos.replace(/^(\d{5})(\d)/, '$1-$2');
-}
 
 /** `(11) 98765-4321` para celular, `(11) 3456-7890` para fixo. */
 export function formatarTelefone(valor: string): string {

@@ -49,7 +49,7 @@ export function PaginaConfirmacao() {
   return (
     <div className="space-y-6">
       <div className="nao-imprimir">
-        <IndicadorEtapas atual={3} />
+        <IndicadorEtapas atual={2} />
       </div>
 
       <Card>
