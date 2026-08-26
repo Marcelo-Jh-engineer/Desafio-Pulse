@@ -126,11 +126,9 @@ public class CatalogoController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
                 .contentType(MediaType.parseMediaType(imagem.getTipoConteudo()))
-                // SVG e XML e aceita script dentro. O sandbox tira da imagem os
-                // poderes de uma pagina da loja, e o nosniff impede que o
-                // navegador decida sozinho que aquilo e outra coisa. Vale mesmo
-                // para o que nos gravamos: barreira que so protege contra o
-                // ataque que a gente lembrou nao e barreira.
+                // O banco e a aplicacao aceitam somente formatos raster. O
+                // sandbox e o nosniff permanecem como defesa em profundidade
+                // caso um conteudo mal classificado chegue a esta resposta.
                 .header("Content-Security-Policy", "sandbox")
                 .header("X-Content-Type-Options", "nosniff")
                 .body(imagem.getConteudo());

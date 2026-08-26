@@ -48,13 +48,9 @@ public class ImagemDeProduto {
      * mesmo poder que o codigo da propria pagina tem. Foto de produto e imagem
      * de pixels; nao ha ganho que pague esse risco.
      *
-     * O CHECK da tabela e mais permissivo e aceita image/svg+xml, porque a
-     * carga inicial do catalogo e feita de SVG. A diferenca e proposital: SVG
-     * nosso, escrito numa migration revisada, entra; SVG de quem envia um
-     * arquivo, nao. Ver V8__seed_imagens.sql.
-     *
-     * Se um dia o upload precisar aceitar SVG, a decisao tem de ser tomada
-     * aqui, junto com a sanitizacao — nao herdada da migration por descuido.
+     * A V11 tambem remove SVG do CHECK do banco depois de substituir o seed
+     * legado por WebP. Assim aplicacao e banco recusam o formato ativo em todo
+     * caminho de escrita.
      */
     public static final Set<String> TIPOS_ACEITOS =
             Set.of("image/jpeg", "image/png", "image/webp", "image/avif");
