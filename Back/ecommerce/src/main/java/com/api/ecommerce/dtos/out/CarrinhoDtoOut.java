@@ -28,12 +28,12 @@ public record CarrinhoDtoOut(
      * @param urlsDasImagens endereco da foto por id publico de produto, ja
      *                       resolvido por ServicoDeImagemDeProduto
      */
-    public static CarrinhoDtoOut de(Carrinho carrinho, Map<UUID, String> urlsDasImagens) {
+    public static CarrinhoDtoOut fromEntityToDto(Carrinho carrinho, Map<UUID, String> urlsDasImagens) {
         return new CarrinhoDtoOut(
                 carrinho.getIdPublico().toString(),
                 carrinho.getStatus(),
                 carrinho.getItens().stream()
-                        .map(item -> ItemCarrinhoDtoOut.de(item,
+                        .map(item -> ItemCarrinhoDtoOut.fromEntityToDto(item,
                                 urlsDasImagens.get(item.getProduto().getIdPublico())))
                         .toList(),
                 carrinho.totalEmCentavos(),

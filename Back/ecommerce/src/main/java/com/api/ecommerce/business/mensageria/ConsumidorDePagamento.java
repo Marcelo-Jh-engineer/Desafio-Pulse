@@ -43,7 +43,6 @@ public class ConsumidorDePagamento {
         processar(new String(mensagem.getBody(), StandardCharsets.UTF_8));
     }
 
-    /** Separado do listener para o teste chamar sem subir broker. */
     public void processar(String conteudo) throws Exception {
         PagamentoSolicitado evento = json.readValue(conteudo, PagamentoSolicitado.class);
         pagamentos.processar(UUID.fromString(evento.pagamentoId()));

@@ -37,7 +37,7 @@ public record ProdutoDtoOut(
         int quantidadeEstoque,
         boolean ativo) {
 
-    public static ProdutoDtoOut de(Produto produto, String urlImagem) {
+    public static ProdutoDtoOut fromEntityToDto(Produto produto, String urlImagem) {
         return new ProdutoDtoOut(
                 produto.getIdPublico().toString(),
                 produto.getNome(),
@@ -45,7 +45,7 @@ public record ProdutoDtoOut(
                 produto.getPrecoEmCentavos(),
                 produto.getUnidade(),
                 urlImagem,
-                CategoriaResumidaDtoOut.de(produto.getCategoria()),
+                CategoriaResumidaDtoOut.fromEntityToDto(produto.getCategoria()),
                 produto.getQuantidadeEstoque(),
                 produto.isAtivo());
     }

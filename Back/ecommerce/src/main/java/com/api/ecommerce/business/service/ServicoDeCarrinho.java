@@ -100,11 +100,13 @@ public class ServicoDeCarrinho {
         if (quantidade < 1) {
             throw new IllegalArgumentException("Quantidade a remover precisa ser pelo menos 1");
         }
-
+        //verifica o usuário existente
         UsuarioUtils.getUser(usuarios, sub);
+        //verifica se existe carrinho aberto pro usuario passdo
         Carrinho carrinho = carrinhoAbertoDe(sub);
+        //verifica se o produto passado existe e está disponivel
         Produto produto = exigirProduto(idPublicoDoProduto);
-
+        //verifica se o produto passado está no carrinho
         int atual = carrinho.getItens().stream()
                 .filter(item -> item.getProduto().equals(produto))
                 .mapToInt(ItemCarrinho::getQuantidade)
@@ -120,6 +122,7 @@ public class ServicoDeCarrinho {
     /** O carrinho aberto de quem pediu, com as linhas e o total. */
     @Transactional(readOnly = true)
     public CarrinhoDtoOut ver(UUID sub) {
+        //verificar se o usuário existe e ta autenticado
         UsuarioUtils.getUser(usuarios, sub);
         return montar(carrinhoAbertoDe(sub));
     }
@@ -131,13 +134,13 @@ public class ServicoDeCarrinho {
         }
 
         Produto produto = exigirProduto(idPublicoDoProduto);
-
+        //verifica se o produto já está no carrinho e qual quantidade.
         int jaNoCarrinho = carrinho.getItens().stream()
                 .filter(item -> item.getProduto().equals(produto))
                 .mapToInt(ItemCarrinho::getQuantidade)
                 .findFirst()
                 .orElse(0);
-
+        // verifica se tem estoque pro ja tem no carrinho mas o que quero colocar em caso do produto ja está no carrinho
         estoque.exigirDisponibilidade(produto, jaNoCarrinho + quantidade);
 
         carrinho.adicionar(produto, quantidade);
@@ -151,9 +154,6 @@ public class ServicoDeCarrinho {
      * `saveAndFlush`, e nao `save`: o flush empurra as linhas agora, entao uma
      * violacao de CHECK ou de unique estoura aqui dentro, onde da para
      * traduzir, e nao no commit da transacao, ja fora do servico.
-     *
-     * O total nao precisa de releitura — `Carrinho.totalEmCentavos()` soma as
-     * linhas que estao em memoria, as mesmas que acabaram de ser gravadas.
      */
     private CarrinhoDtoOut gravarEMontar(Carrinho carrinho) {
         carrinhos.saveAndFlush(carrinho);
@@ -169,16 +169,16 @@ public class ServicoDeCarrinho {
                 .map(ItemCarrinho::getProduto)
                 .toList();
 
-        return CarrinhoDtoOut.de(carrinho, enderecoDaImagem.urlsDe(daLinha));
+        return CarrinhoDtoOut.fromEntityToDto(carrinho, enderecoDaImagem.urlsDe(daLinha));
     }
 
-
+    //verifica a existencia do carrinho pro usuário com subIdPassado
     private Carrinho carrinhoAbertoDe(UUID sub) {
         return carrinhos.abertoDe(sub)
                 .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Você ainda não tem um carrinho."));
     }
 
-    /** Produto inativo responde igual a id inventado — ver ServicoDeCatalogo. */
+    //verifica se o produto existe
     private Produto exigirProduto(UUID idPublico) {
         return produtos.findByIdPublico(idPublico)
                 .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Não encontramos este produto."));

@@ -19,7 +19,7 @@ public record CategoriaDtoOut(
         @Schema(description = "Ordem crescente no filtro do catalogo", example = "1") int ordem,
         boolean ativa) {
 
-    public static CategoriaDtoOut de(Categoria categoria) {
+    public static CategoriaDtoOut fromEntityToDto(Categoria categoria) {
         return new CategoriaDtoOut(
                 categoria.getIdPublico().toString(),
                 categoria.getNome(),

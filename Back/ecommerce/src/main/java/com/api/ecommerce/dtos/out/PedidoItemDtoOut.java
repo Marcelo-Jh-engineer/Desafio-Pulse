@@ -26,7 +26,7 @@ public record PedidoItemDtoOut(
         @Schema(description = "precoEmCentavos * quantidade", example = "1298")
         long totalLinhaEmCentavos) {
 
-    public static PedidoItemDtoOut de(ItemPedido item) {
+    public static PedidoItemDtoOut fromEntityToDto(ItemPedido item) {
         return new PedidoItemDtoOut(
                 item.getProduto().getIdPublico().toString(),
                 item.getNome(),

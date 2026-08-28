@@ -6,14 +6,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.api.ecommerce.business.outbox.RegistradorDeEventos;
 import com.api.ecommerce.dtos.out.PedidoDtoOut;
 import com.api.ecommerce.dtos.out.PedidoItemDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
 import com.api.ecommerce.infrastructure.entities.Categoria;
-import com.api.ecommerce.infrastructure.entities.EventoOutbox;
 import com.api.ecommerce.infrastructure.entities.Pedido;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.entities.Usuario;
@@ -26,7 +25,6 @@ import com.api.ecommerce.infrastructure.repositories.RepositorioDeCarrinho;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeEventoOutbox;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDePedido;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeUsuario;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,9 +44,9 @@ import org.mockito.quality.Strictness;
  * e a DECISAO: quando o carrinho vira pedido, quando nao vira, de onde sai o
  * preco cobrado, e o que a chave de idempotencia impede.
  *
- * ServicoDeEstoque e o ObjectMapper entram de verdade, nao dublados: sao logica
- * pura, e substitui-los por mocks provaria que o servico chama o mock, nao que
- * o estoque foi conferido. O mesmo vale para as entidades — Carrinho, Pedido e
+ * ServicoDeEstoque entra de verdade, nao dublado: e logica pura, e substitui-lo
+ * por mock provaria que o servico chama o mock, nao que o estoque foi
+ * conferido. O mesmo vale para as entidades — Carrinho, Pedido e
  * as linhas sao objetos comuns aqui, e e neles que a conta do total acontece.
  *
  * Fora de cobertura, e registrado: os CHECK do banco, o indice parcial do
@@ -75,12 +73,9 @@ class ServicoDePedidoTest {
 
     @BeforeEach
     void preparar() {
-        // O RegistradorDeEventos entra de verdade sobre o repositorio dublado:
-        // ele so serializa e grava, e o que interessa aqui e a linha que chega
-        // ao outbox — nao que o servico chamou um mock.
-        servico = new ServicoDePedido(pedidos, carrinhos, usuarios,
-                new RegistradorDeEventos(eventos, new ObjectMapper()),
-                new ServicoDeEstoque());
+        // O repositorio do outbox segue dublado, mas agora para provar o
+        // contrario: o checkout nao encosta nele.
+        servico = new ServicoDePedido(pedidos, carrinhos, usuarios, new ServicoDeEstoque());
 
         maria = new Usuario(SUB, "Maria Souza", "maria@exemplo.com", "11144477735");
 
@@ -234,23 +229,13 @@ class ServicoDePedidoTest {
     }
 
     @Test
-    @DisplayName("a criacao grava PEDIDO_CRIADO no outbox, sem dado do comprador")
-    void gravaEventoNoOutbox() {
+    @DisplayName("o checkout nao publica evento nenhum: o outbox so entra no pagamento")
+    void checkoutNaoGravaEvento() {
         carrinhoCom(banana, 2);
 
-        PedidoDtoOut dto = servico.criar(SUB, CHAVE);
+        servico.criar(SUB, CHAVE);
 
-        ArgumentCaptor<EventoOutbox> capturado = ArgumentCaptor.forClass(EventoOutbox.class);
-        verify(eventos).save(capturado.capture());
-
-        EventoOutbox evento = capturado.getValue();
-        assertThat(evento.getTipo()).isEqualTo("PEDIDO_CRIADO");
-        assertThat(evento.getAgregado()).isEqualTo("PEDIDO");
-        assertThat(evento.getConteudo())
-                .contains(dto.id())
-                .contains("\"totalEmCentavos\":" + dto.totalEmCentavos())
-                // Nome, e-mail e login nao viajam para o broker (LGPD).
-                .doesNotContain("Maria").doesNotContain("11144477735");
+        verifyNoInteractions(eventos);
     }
 
     @Test

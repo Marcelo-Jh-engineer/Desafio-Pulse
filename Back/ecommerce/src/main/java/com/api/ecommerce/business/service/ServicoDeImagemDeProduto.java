@@ -54,13 +54,31 @@ public class ServicoDeImagemDeProduto {
 
     /** Para um produto so. Use urlsDe quando houver mais de um. */
     public String urlDe(Produto produto) {
-        return montar(produto, imagens.existsByProdutoIdPublico(produto.getIdPublico()));
+        boolean temImagemNoBanco = imagens.existsByProdutoIdPublico(produto.getIdPublico());
+        String url = montar(produto, temImagemNoBanco);
+
+        return url;
+    }
+
+    /**
+     * Para quem JA sabe se ha foto no banco — a listagem do catalogo, que traz
+     * essa resposta na propria consulta dos produtos.
+     *
+     * Sem esta porta, quem ja tem o dado teria de escolher entre pagar uma
+     * consulta que nao precisa ou repetir aqui fora a regra de montagem da URL,
+     * que e justamente o que este servico existe para concentrar.
+     */
+    public String urlDe(Produto produto, boolean temImagemNoBanco) {
+        String url = montar(produto, temImagemNoBanco);
+
+        return url;
     }
 
     private String montar(Produto produto, boolean temImagemNoBanco) {
-        if (temImagemNoBanco) {
-            return "/api/produtos/" + produto.getIdPublico() + "/imagem";
-        }
-        return produto.getUrlImagem();
+        String url = temImagemNoBanco
+                ? "/api/produtos/" + produto.getIdPublico() + "/imagem"
+                : produto.getUrlImagem();
+
+        return url;
     }
 }

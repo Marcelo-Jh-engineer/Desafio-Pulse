@@ -27,8 +27,9 @@ import org.springframework.context.annotation.Configuration;
  * </pre>
  *
  * **Topic e nao direct** porque a chave de roteamento e hierarquica
- * (`pedido.criado`, `pagamento.solicitado`): o dia em que alguem quiser ouvir
- * `pedido.*` inteiro, basta um binding — sem mexer em quem publica.
+ * (`pagamento.solicitado`): o dia em que aparecer um segundo evento de
+ * pagamento, ouvir `pagamento.*` inteiro custa um binding — sem mexer em quem
+ * publica.
  *
  * **A DLX e fanout** porque ela nao decide nada: o que chega la ja falhou, e
  * cada fila de trabalho aponta para a sua propria DLQ pelo binding. Rotear de

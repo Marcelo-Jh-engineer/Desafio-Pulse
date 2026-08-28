@@ -42,14 +42,14 @@ public class EventoOutbox {
     @Column(nullable = false, updatable = false)
     private UUID idPublico = UUID.randomUUID();
 
-    /** Qual entidade mudou: "PEDIDO", "PAGAMENTO". */
+    /** Qual entidade mudou: hoje so "PAGAMENTO". */
     @Column(nullable = false, updatable = false, length = 40)
     private String agregado;
 
     @Column(nullable = false, updatable = false)
     private Long agregadoId;
 
-    /** O que aconteceu: "PEDIDO_CRIADO", "PAGAMENTO_SOLICITADO". */
+    /** O que aconteceu: hoje so "PAGAMENTO_SOLICITADO". */
     @Column(nullable = false, updatable = false, length = 60)
     private String tipo;
 

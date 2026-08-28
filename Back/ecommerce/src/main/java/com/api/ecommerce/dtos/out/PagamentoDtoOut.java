@@ -32,7 +32,7 @@ public record PagamentoDtoOut(
         @Schema(description = "Nulo enquanto a tentativa espera na fila")
         Instant processadoEm) {
 
-    public static PagamentoDtoOut de(Pagamento pagamento) {
+    public static PagamentoDtoOut fromEntityToDto(Pagamento pagamento) {
         return new PagamentoDtoOut(
                 pagamento.getIdPublico().toString(),
                 pagamento.getMetodo(),

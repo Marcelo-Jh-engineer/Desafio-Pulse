@@ -33,7 +33,7 @@ public record ItemCarrinhoDtoOut(
         @Schema(description = "O preco do catalogo andou desde que o item entrou")
         boolean precoDivergiu) {
 
-    public static ItemCarrinhoDtoOut de(ItemCarrinho item, String urlImagem) {
+    public static ItemCarrinhoDtoOut fromEntityToDto(ItemCarrinho item, String urlImagem) {
         return new ItemCarrinhoDtoOut(
                 item.getProduto().getIdPublico().toString(),
                 item.getNome(),

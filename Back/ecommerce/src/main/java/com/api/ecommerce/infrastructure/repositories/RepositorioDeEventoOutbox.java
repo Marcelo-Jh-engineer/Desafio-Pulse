@@ -17,16 +17,6 @@ import org.springframework.data.jpa.repository.QueryHints;
  */
 public interface RepositorioDeEventoOutbox extends JpaRepository<EventoOutbox, Long> {
 
-    /**
-     * O lote que o publicador ainda precisa entregar, do mais antigo para o
-     * mais novo — a ordem em que os fatos aconteceram e a ordem em que devem
-     * ser anunciados.
-     *
-     * A linha e travada e as ja travadas sao puladas (SKIP LOCKED). Sem isso,
-     * duas instancias da API varrendo a mesma tabela entregariam o mesmo evento
-     * duas vezes; com isso, cada uma pega um lote diferente sem esperar a
-     * outra.
-     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints(@jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2"))
     @Query("""

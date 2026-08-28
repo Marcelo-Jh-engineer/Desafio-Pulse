@@ -1,6 +1,5 @@
 package com.api.ecommerce.business.service;
 
-import com.api.ecommerce.business.outbox.RegistradorDeEventos;
 import com.api.ecommerce.dtos.out.PaginaDtoOut;
 import com.api.ecommerce.dtos.out.PedidoDtoOut;
 import com.api.ecommerce.infrastructure.entities.Carrinho;
@@ -9,7 +8,6 @@ import com.api.ecommerce.infrastructure.entities.Pedido;
 import com.api.ecommerce.infrastructure.entities.Produto;
 import com.api.ecommerce.infrastructure.entities.Usuario;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeConflito;
-import com.api.ecommerce.infrastructure.enums.TipoDeEvento;
 import com.api.ecommerce.infrastructure.exception.ExcecaoDeNaoEncontrado;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDeCarrinho;
 import com.api.ecommerce.infrastructure.repositories.RepositorioDePedido;
@@ -52,56 +50,32 @@ public class ServicoDePedido {
     /** Limite da coluna `chave_idempotencia`. */
     private static final int TAMANHO_MAXIMO_DA_CHAVE = 80;
 
-    private static final String AGREGADO = "PEDIDO";
-
     private final RepositorioDePedido pedidos;
     private final RepositorioDeCarrinho carrinhos;
     private final RepositorioDeUsuario usuarios;
-    private final RegistradorDeEventos eventos;
     private final ServicoDeEstoque estoque;
 
     public ServicoDePedido(RepositorioDePedido pedidos,
                            RepositorioDeCarrinho carrinhos,
                            RepositorioDeUsuario usuarios,
-                           RegistradorDeEventos eventos,
                            ServicoDeEstoque estoque) {
         this.pedidos = pedidos;
         this.carrinhos = carrinhos;
         this.usuarios = usuarios;
-        this.eventos = eventos;
         this.estoque = estoque;
     }
 
-    /**
-     * O checkout: carrinho aberto vira pedido PENDENTE
-     *
-     * Uma transacao so, e nenhuma chamada de rede dentro dela. A
-     * ordem importa:
-     *
-     * 1. a chave de idempotencia e consultada ANTES de qualquer escrita — o
-     *    reenvio devolve o pedido que ja existe em vez de cobrar de novo;
-     * 2. TODOS os itens sao validados antes de o pedido nascer, e as falhas
-     *    saem juntas: corrigir uma de cada vez faria a pessoa descobrir o
-     *    problema seguinte so depois de resolver o anterior;
-     * 3. o carrinho vira CONVERTIDO na mesma transacao. O indice parcial
-     *    `uk_carrinho_aberto_por_usuario` so olha ABERTO, entao o cliente ganha
-     *    carrinho novo de graca na proxima adica.
-     *
-     * Os produtos NAO sao relidos: `carrinhos.abertoDe` ja traz cada linha com
-     * o seu produto na mesma consulta, e a validacao usa esses (RNF-PED-04).
-     *
-     * @param chaveRecebida header `Idempotency-Key`, opcional
-     */
-    @Transactional
+       @Transactional
     public PedidoDtoOut criar(UUID sub, String chaveRecebida) {
         Usuario dono = UsuarioUtils.getUser(usuarios, sub);
+        //SE NAO RECEBER CRIA UMA CHAVE
         String chave = chaveDeIdempotencia(chaveRecebida);
 
         // Replay: mesmo par (usuario, chave) devolve o mesmo pedido
         Optional<Pedido> jaCriado =
                 pedidos.findByUsuarioKeycloakSubAndChaveIdempotencia(sub, chave);
         if (jaCriado.isPresent()) {
-            return PedidoDtoOut.de(jaCriado.get());
+            return PedidoDtoOut.fromEntityToDto(jaCriado.get());
         }
 
         Carrinho carrinho = carrinhos.abertoDe(sub)
@@ -110,8 +84,7 @@ public class ServicoDePedido {
         if (carrinho.getItens().isEmpty()) {
             throw new ExcecaoDeConflito("Seu carrinho está vazio.");
         }
-
-        exigirTudoDisponivel(carrinho);
+        verificacaoEstoqueItensCarrinho(carrinho);
 
         Pedido pedido = new Pedido(dono, carrinho, chave);
         // A copia e linha-a-linha, do CARRINHO: o cliente paga o preco que viu
@@ -120,22 +93,17 @@ public class ServicoDePedido {
         //conveter o status para CONVERTIDO, para que o carrinho nao seja mais aberto e possa ser usado novamente
         carrinho.converter();
 
-        // saveAndFlush, e nao save: o flush empurra as linhas agora, entao uma
-        // violacao de CHECK ou da unique de idempotencia estoura aqui dentro, e
-        // nao no commit, ja fora do servico. E tambem o que da ao pedido o `id`
-        // que o evento do outbox precisa referenciar.
         pedidos.saveAndFlush(pedido);
         carrinhos.save(carrinho);
-        eventos.registrar(AGREGADO, pedido.getId(), TipoDeEvento.PEDIDO_CRIADO, conteudoDe(pedido));
 
-        return PedidoDtoOut.de(pedido);
+        return PedidoDtoOut.fromEntityToDto(pedido);
     }
 
     @Transactional(readOnly = true)
     public PedidoDtoOut buscar(UUID sub, UUID idPublico) {
         UsuarioUtils.getUser(usuarios, sub);
         return pedidos.findByIdPublicoAndUsuarioKeycloakSub(idPublico, sub)
-                .map(PedidoDtoOut::de)
+                .map(PedidoDtoOut::fromEntityToDto)
                 // Pedido de outro dono responde igual a id inventado: dizer
                 .orElseThrow(() -> new ExcecaoDeNaoEncontrado("Pedido não encontrado."));
     }
@@ -145,13 +113,14 @@ public class ServicoDePedido {
         UsuarioUtils.getUser(usuarios, sub);
         return PaginaDtoOut.de(
                 pedidos.findByUsuarioKeycloakSubOrderByCriadoEmDesc(sub, paginacaoDe(pagina, tamanho)),
-                PedidoDtoOut::de);
+                PedidoDtoOut::fromEntityToDto);
     }
 
     /**
      * Revalida o carrinho inteiro contra o estoque de agora.
+     * Verifica o estoque de novo ao criar o pedido
      */
-    private void exigirTudoDisponivel(Carrinho carrinho) {
+    private void verificacaoEstoqueItensCarrinho(Carrinho carrinho) {
         Map<String, String> indisponiveis = new LinkedHashMap<>();
 
         for (ItemCarrinho linha : carrinho.getItens()) {
@@ -160,7 +129,6 @@ public class ServicoDePedido {
                 indisponiveis.put(produto.getIdPublico().toString(), faltaDe(linha, produto));
             }
         }
-
         if (!indisponiveis.isEmpty()) {
             throw new ExcecaoDeConflito(
                     "Alguns itens do seu carrinho não estão mais disponíveis.", indisponiveis);
@@ -199,26 +167,6 @@ public class ServicoDePedido {
         }
         return chave;
     }
-
-    /**
-     * O corpo do evento que anuncia o pedido.
-     *
-     * Leva o id publico, o total e o tamanho do pedido — nada de nome, e-mail
-     * ou login do comprador. O evento vai para um broker e sobrevive ao
-     * registro que o originou; documento e e-mail nao tem por que viajar junto
-     *.
-     *
-     * Quem serializa e grava e o RegistradorDeEventos, na mesma transacao deste
-     * metodo.
-     */
-    private Map<String, Object> conteudoDe(Pedido pedido) {
-        return Map.of(
-                "pedidoId", pedido.getIdPublico().toString(),
-                "status", pedido.getStatus().name(),
-                "totalEmCentavos", pedido.getTotalEmCentavos(),
-                "quantidadeItens", pedido.getItens().size());
-    }
-
 
     /** Sem Sort: a ordem e fixa no metodo do repositorio, e nao se escolhe. */
     private Pageable paginacaoDe(Integer pagina, Integer tamanho) {

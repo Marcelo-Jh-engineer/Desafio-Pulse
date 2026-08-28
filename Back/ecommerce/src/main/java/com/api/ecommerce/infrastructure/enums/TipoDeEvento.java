@@ -9,13 +9,13 @@ import java.util.Optional;
  * publicador. Uma chave montada a mao erra em silencio: a mensagem sai, o
  * broker aceita, nenhuma fila casa com ela, e o evento some sem erro nenhum.
  *
- * PEDIDO_CRIADO nao tem fila ligada nesta fatia — nada precisa reagir a ele.
- * Continua no enum porque o checkout ja o grava no outbox, e um tipo sem
- * mapeamento travaria o publicador para sempre naquela linha.
+ * Um tipo so, porque so existe um consumidor. PEDIDO_CRIADO viveu aqui e saiu:
+ * era gravado no outbox, publicado, e descartado pelo broker por nao haver
+ * binding que casasse com `pedido.criado` — evento que ninguem escuta nao e
+ * integracao, e trabalho invisivel a cada checkout.
  */
 public enum TipoDeEvento {
 
-    PEDIDO_CRIADO("pedido.criado"),
     PAGAMENTO_SOLICITADO("pagamento.solicitado");
 
     private final String chaveDeRoteamento;

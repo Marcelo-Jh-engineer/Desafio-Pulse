@@ -19,7 +19,7 @@ public record CategoriaResumidaDtoOut(
         @Schema(example = "2") int ordem,
         boolean ativa) {
 
-    public static CategoriaResumidaDtoOut de(Categoria categoria) {
+    public static CategoriaResumidaDtoOut fromEntityToDto(Categoria categoria) {
         return new CategoriaResumidaDtoOut(
                 categoria.getIdPublico().toString(),
                 categoria.getNome(),

@@ -80,7 +80,7 @@ public class ServicoDePagamento {
         Optional<Pagamento> emAberto = pagamentos.findByPedidoIdPublicoAndStatus(
                 idPublicoDoPedido, StatusPagamento.PENDENTE);
         if (emAberto.isPresent()) {
-            return PagamentoDtoOut.de(emAberto.get());
+            return PagamentoDtoOut.fromEntityToDto(emAberto.get());
         }
 
         Pagamento pagamento = Pagamento.solicitado(pedido, metodo);
@@ -94,7 +94,7 @@ public class ServicoDePagamento {
                 TipoDeEvento.PAGAMENTO_SOLICITADO,
                 new PagamentoSolicitado(pagamento.getIdPublico().toString()));
 
-        return PagamentoDtoOut.de(pagamento);
+        return PagamentoDtoOut.fromEntityToDto(pagamento);
     }
 
     /** As tentativas de um pedido do proprio cliente, recentes primeiro. */
@@ -103,7 +103,7 @@ public class ServicoDePagamento {
         exigirPedidoDoCliente(sub, idPublicoDoPedido);
 
         return pagamentos.findByPedidoIdPublicoOrderByCriadoEmDesc(idPublicoDoPedido).stream()
-                .map(PagamentoDtoOut::de)
+                .map(PagamentoDtoOut::fromEntityToDto)
                 .toList();
     }
 

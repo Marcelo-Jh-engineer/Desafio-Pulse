@@ -63,8 +63,7 @@ public class BuscaDeProdutosController {
             @Parameter(description = "Pedaco do nome do produto", example = "banana")
             @RequestParam(required = false) String nome,
 
-            @Parameter(description = "Id da categoria",
-                    example = "c1a2b3c4-0001-4000-8000-000000000001")
+            @Parameter(description = "Id da categoria")
             @RequestParam(required = false) UUID categoria,
 
             @Parameter(description = "Indice da pagina, base 0", example = "0")

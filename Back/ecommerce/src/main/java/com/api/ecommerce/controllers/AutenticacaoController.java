@@ -55,7 +55,8 @@ public class AutenticacaoController {
     @ApiResponse(responseCode = "401", description = "Login ou senha incorretos",
             content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
     public ResponseEntity<AutenticacaoDtoOut> login(@Valid @RequestBody LoginDtoIn pedido) {
-        return comCookie(servico.entrar(pedido), HttpStatus.OK);
+        var body = servico.entrar(pedido);
+        return comCookie(body, HttpStatus.OK);
     }
 
     @PostMapping("/cadastro")
@@ -64,7 +65,8 @@ public class AutenticacaoController {
     @ApiResponse(responseCode = "409", description = "Login ou e-mail ja em uso",
             content = @Content(schema = @Schema(implementation = ErroDtoOut.class)))
     public ResponseEntity<AutenticacaoDtoOut> cadastro(@Valid @RequestBody CadastroDtoIn pedido) {
-        return comCookie(servico.cadastrar(pedido), HttpStatus.CREATED);
+        var body = servico.cadastrar(pedido);
+        return comCookie(body, HttpStatus.CREATED);
     }
 
     /**

@@ -37,7 +37,7 @@ public class ServicoDeAutenticacao {
     }
 
     public SessaoCriadaDto entrar(LoginDtoIn pedido) {
-        return traduzir(keycloak.autenticar(pedido.identificador(), pedido.senha()));
+        return traduzirRetornoKeycloakToSession(keycloak.autenticar(pedido.identificador(), pedido.senha()));
     }
 
     /**
@@ -56,7 +56,7 @@ public class ServicoDeAutenticacao {
                 pedido.senha()));
 
         try {
-            return traduzir(keycloak.autenticar(pedido.login(), pedido.senha()));
+            return traduzirRetornoKeycloakToSession(keycloak.autenticar(pedido.login(), pedido.senha()));
         } catch (RuntimeException erroDoLogin) {
             try {
                 keycloak.excluirUsuario(idCriado);
@@ -73,7 +73,7 @@ public class ServicoDeAutenticacao {
      * cookie — manter o anterior derrubaria a sessao na proxima tentativa.
      */
     public SessaoCriadaDto renovar(String refreshToken) {
-        return traduzir(keycloak.renovar(refreshToken));
+        return traduzirRetornoKeycloakToSession(keycloak.renovar(refreshToken));
     }
 
     public void sair(String refreshToken) {
@@ -85,7 +85,7 @@ public class ServicoDeAutenticacao {
      * valida assinatura, issuer e expiracao — o mesmo tratamento que o token
      * recebe depois, a cada chamada da API.
      */
-    private SessaoCriadaDto traduzir(RespostaDeTokenDoKeycloak token) {
+    private SessaoCriadaDto traduzirRetornoKeycloakToSession(RespostaDeTokenDoKeycloak token) {
         Jwt acesso;
         try {
             acesso = decodificador.decode(token.accessToken());

@@ -21,59 +21,69 @@ import org.springframework.data.repository.query.Param;
  */
 public interface RepositorioDeProduto extends JpaRepository<Produto, Long> {
 
+    /**
+     * Uma linha da listagem: o produto e a resposta de "tem foto no banco?",
+     * nas duas colunas que a mesma consulta ja trouxe.
+     *
+     * Aninhado aqui porque so buscarNoCatalogo o produz e so ele o consome —
+     * e o formato de saida daquela consulta, nao um tipo do dominio.
+     *
+     * Da imagem vem o `idPublico`, e NADA MAIS: trazer a entidade arrastaria o
+     * `conteudo` junto, um bytea por linha. Nulo significa "sem foto no banco",
+     * que e tudo o que a montagem da URL precisa saber.
+     */
+    record ProdutoDoCatalogo(Produto produto, UUID idPublicoDaImagem) {
+
+        public boolean temImagemNoBanco() {
+            return idPublicoDaImagem != null;
+        }
+    }
+
     @EntityGraph(attributePaths = "categoria")
     Optional<Produto> findByIdPublico(UUID idPublico);
 
-    /**
-     * Listagem publica do catalogo, com os dois unicos filtros que existem:
-     * categoria (pelo id publico dela) e nome.
-     *
-     * Produto inativo nao aparece; produto sem estoque aparece sim, marcado
-     * como indisponivel — some o botao de compra, nao o produto
-     * (docs/models.md secao 4).
-     *
-     * Os dois filtros sao opcionais: nulo significa "nao filtre por isso", e e
-     * o que permite uma consulta so atender catalogo inteiro, filtro por
-     * categoria, busca por nome, e as duas coisas juntas.
-     *
-     * `padraoDeNome` chega PRONTO — minusculo e ja com os `%` nas pontas,
-     * montado em ServicoDeCatalogo. Nao ha normalizacao de acento: quem procura
-     * digita a palavra como ela e escrita.
-     *
-     * Montar o padrao aqui dentro, com CONCAT, nao funciona — o parametro fica
-     * sem tipo quando vem nulo, e o Postgres responde `function lower(bytea)
-     * does not exist`. Comparado direto num LIKE contra coluna de texto, o
-     * tipo se resolve sozinho.
-     *
-     * Sem clausula ESCAPE de proposito: a barra invertida ja e o escape padrao
-     * do LIKE no PostgreSQL. Declarada dentro de um text block do Java, ela e
-     * consumida antes de chegar ao Hibernate, que entao recusa a consulta por
-     * literal de escape vazio.
-     *
-     * A ORDEM E FIXA e vive aqui dentro, nao no Pageable: disponiveis
-     * primeiro, depois pela ordem da categoria, depois pelo nome. Nao ha
-     * escolha de ordenacao na API. Por isso este metodo exige um Pageable SEM
-     * Sort — o Spring Data anexaria a ordenacao dele DEPOIS deste ORDER BY, e
-     * a que vem depois nao decide nada.
-     */
-    @EntityGraph(attributePaths = "categoria")
-    @Query("""
-            SELECT p FROM Produto p
+    //lista produtos ativos pela categoria e padrão de nomee ordena pelo pelo nome primeiro os disponiveis
+    //
+    // Uma consulta so traz o produto, a categoria e a resposta de "tem foto no
+    // banco?". O LEFT JOIN e de entidade, com ON: nao ha associacao do Produto
+    // para a imagem, e continua nao havendo — um @OneToOne inverso seria
+    // carregado mesmo declarado LAZY, uma consulta por produto da pagina.
+    //
+    // Da imagem sai `i.idPublico` e nada mais. `i` inteiro traria o `conteudo`,
+    // um bytea por linha: doze fotos completas para desenhar doze miniaturas.
+    //
+    // A linha nao duplica porque uk_produto_imagens_produto (V7) garante uma
+    // imagem por produto — sem isso o LEFT JOIN quebraria a paginacao.
+    //
+    // countQuery a mao: o derivado pelo Spring Data copiaria o JOIN FETCH, e
+    // Hibernate recusa fetch numa consulta que nao devolve o dono.
+    @Query(value = """
+            SELECT new com.api.ecommerce.infrastructure.repositories.RepositorioDeProduto$ProdutoDoCatalogo(p, i.idPublico)
+              FROM Produto p
+              JOIN FETCH p.categoria
+              LEFT JOIN ImagemDeProduto i ON i.produto = p
              WHERE p.ativo = TRUE
                AND (:idCategoria IS NULL OR p.categoria.idPublico = :idCategoria)
                AND (:padraoDeNome IS NULL OR LOWER(p.nome) LIKE :padraoDeNome)
              ORDER BY CASE WHEN p.quantidadeEstoque > 0 THEN 0 ELSE 1 END,
                       p.categoria.ordem,
                       p.nome
+            """,
+            countQuery = """
+            SELECT COUNT(p) FROM Produto p
+             WHERE p.ativo = TRUE
+               AND (:idCategoria IS NULL OR p.categoria.idPublico = :idCategoria)
+               AND (:padraoDeNome IS NULL OR LOWER(p.nome) LIKE :padraoDeNome)
             """)
-    Page<Produto> buscarNoCatalogo(@Param("idCategoria") UUID idCategoria,
-                                   @Param("padraoDeNome") String padraoDeNome,
-                                   Pageable paginacao);
+    Page<ProdutoDoCatalogo> buscarNoCatalogo(@Param("idCategoria") UUID idCategoria,
+                                             @Param("padraoDeNome") String padraoDeNome,
+                                             Pageable paginacao);
+
+
 
     /** Listagem do admin: enxerga tambem o que esta inativo. */
     @EntityGraph(attributePaths = "categoria")
     Page<Produto> findAllBy(Pageable paginacao);
-
     /**
      * Trava a linha para a baixa de estoque na aprovacao do pagamento.
      *
