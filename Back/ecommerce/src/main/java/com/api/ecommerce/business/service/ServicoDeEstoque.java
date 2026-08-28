@@ -54,6 +54,6 @@ public class ServicoDeEstoque {
     public boolean temDisponibilidade(Produto produto, int quantidade) {
         return produto.isAtivo()
                 && quantidade >= 1
-                && produto.getQuantidadeEstoque() > quantidade;
+                && produto.getQuantidadeEstoque() >= quantidade;
     }
 }
